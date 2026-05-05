@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unisonmusic</title>
+  <script src="https://unpkg.com/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111827;
+      --panel: rgba(255, 255, 255, 0.1);
+      --panel-strong: rgba(255, 255, 255, 0.16);
+      --line: rgba(255, 255, 255, 0.18);
+      --text: #f8fafc;
+      --muted: #a7b0c0;
+      --green: #34d399;
+      --red: #fb7185;
+      --blue: #60a5fa;
+      --yellow: #fbbf24;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.28), transparent 30%),
+        radial-gradient(circle at 80% 20%, rgba(52, 211, 153, 0.18), transparent 28%),
+        linear-gradient(135deg, #0f172a 0%, #111827 52%, #18181b 100%);
+      color: var(--text);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(960px, 100%);
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 18px;
+      animation: rise 560ms ease both;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      backdrop-filter: blur(22px);
+      padding: 22px;
+    }
+
+    .brand {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 56px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      max-width: 460px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .connection {
+      min-width: 142px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 8px;
+      border-radius: 999px;
+      background: var(--yellow);
+      box-shadow: 0 0 18px currentColor;
+      vertical-align: middle;
+    }
+
+    .dot.connected {
+      background: var(--green);
+    }
+
+    .dot.disconnected {
+      background: var(--red);
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 14px;
+      background: rgba(15, 23, 42, 0.56);
+      color: var(--text);
+      outline: none;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    input:focus {
+      border-color: rgba(96, 165, 250, 0.85);
+      background: rgba(15, 23, 42, 0.74);
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 16px;
+      background: linear-gradient(135deg, #38bdf8, #34d399);
+      color: #06121f;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 160ms ease, opacity 160ms ease, filter 160ms ease;
+      white-space: nowrap;
+    }
+
+    button.secondary {
+      background: var(--panel-strong);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    button.warning {
+      background: linear-gradient(135deg, #fbbf24, #fb7185);
+      color: #1f1306;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .room-code {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: #e0f2fe;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .participants {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .participant {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.42);
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #06121f;
+      background: var(--yellow);
+    }
+
+    .badge.ready {
+      background: var(--green);
+    }
+
+    .player {
+      width: 100%;
+      min-height: 46px;
+    }
+
+    .status {
+      min-height: 42px;
+      border-left: 3px solid var(--blue);
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(96, 165, 250, 0.1);
+      color: #dbeafe;
+      line-height: 1.35;
+    }
+
+    .status.error {
+      border-color: var(--red);
+      background: rgba(251, 113, 133, 0.1);
+      color: #ffe4e6;
+    }
+
+    .countdown {
+      min-height: 64px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.18);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 14px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .brand {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .connection {
+        text-align: left;
+      }
+
+      .row {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel brand">
+      <div>
+        <h1>Unisonmusic</h1>
+        <p>Синхронный старт одного трека на нескольких устройствах через комнату и SignalR.</p>
+      </div>
+      <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
+    </section>
+
+    <section class="panel stack">
+      <h2 class="section-title">Комната</h2>
+      <button id="createRoomButton">Создать комнату</button>
+      <div class="row">
+        <input id="roomCodeInput" inputmode="numeric" maxlength="6" placeholder="Ввести код комнаты">
+        <button id="joinRoomButton" class="secondary">Войти</button>
+      </div>
+      <div id="roomCode" class="room-code">------</div>
+      <div id="roomMeta" class="meta">Комната еще не выбрана.</div>
+
+      <h2 class="section-title">Трек</h2>
+      <div class="row">
+        <input id="trackUrlInput" type="url" placeholder="URL трека, например https://site.ru/song.mp3">
+        <button id="setTrackButton" class="secondary" disabled>Загрузить</button>
+      </div>
+      <audio id="audio" class="player" preload="auto" controls></audio>
+
+      <div class="row">
+        <button id="readyButton" disabled>Готов слушать</button>
+        <button id="startButton" class="warning" disabled>Начать</button>
+      </div>
+      <div id="countdown" class="countdown">Ожидание</div>
+      <div id="status" class="status">Подключаемся к SignalR...</div>
+    </section>
+
+    <aside class="panel stack">
+      <h2 class="section-title">Участники</h2>
+      <ul id="participants" class="participants"></ul>
+      <div class="meta">Когда все участники нажмут "Готов слушать", сервер автоматически разошлет UTC-время старта.</div>
+    </aside>
+  </main>
+
+  <script>
+    const hubUrl = "http://192.168.0.47:5113/hubs/music";
+
+    const connectionDot = document.getElementById("connectionDot");
+    const connectionText = document.getElementById("connectionText");
+    const createRoomButton = document.getElementById("createRoomButton");
+    const joinRoomButton = document.getElementById("joinRoomButton");
+    const roomCodeInput = document.getElementById("roomCodeInput");
+    const roomCode = document.getElementById("roomCode");
+    const roomMeta = document.getElementById("roomMeta");
+    const trackUrlInput = document.getElementById("trackUrlInput");
+    const setTrackButton = document.getElementById("setTrackButton");
+    const readyButton = document.getElementById("readyButton");
+    const startButton = document.getElementById("startButton");
+    const participants = document.getElementById("participants");
+    const statusBox = document.getElementById("status");
+    const countdown = document.getElementById("countdown");
+    const audio = document.getElementById("audio");
+
+    let currentRoom = null;
+    let clockOffsetMs = 0;
+    let countdownTimer = null;
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl, { withCredentials: true })
+      .withAutomaticReconnect([0, 1000, 3000, 7000, 12000])
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    connection.on("RoomJoined", snapshot => {
+      renderRoom(snapshot);
+      setStatus(`Вы вошли в комнату ${snapshot.roomCode}.`);
+    });
+
+    connection.on("RoomUpdated", snapshot => {
+      renderRoom(snapshot);
+    });
+
+    connection.on("UserReadyUpdate", snapshot => {
+      renderRoom(snapshot);
+      setStatus(snapshot.allReady ? "Все готовы. Сервер назначает старт..." : "Статус готовности обновлен.");
+    });
+
+    connection.on("TrackUpdated", snapshot => {
+      renderRoom(snapshot);
+      prepareAudio(snapshot.trackUrl);
+      setStatus("Трек загружен у участников, готовность сброшена.");
+    });
+
+    connection.on("ReceiveStartTime", command => {
+      scheduleLocalPlayback(command.startAt);
+    });
+
+    connection.onreconnecting(() => {
+      updateConnectionState("Переподключение", "disconnected");
+      setControlsEnabled(false);
+    });
+
+    connection.onreconnected(async () => {
+      updateConnectionState("Подключено", "connected");
+      setControlsEnabled(Boolean(currentRoom));
+      await syncClock();
+      setStatus("Соединение восстановлено.");
+    });
+
+    connection.onclose(() => {
+      updateConnectionState("Отключено", "disconnected");
+      setControlsEnabled(false);
+      setStatus("SignalR соединение закрыто.", true);
+    });
+
+    createRoomButton.addEventListener("click", async () => {
+      await invokeHub("CreateRoom");
+    });
+
+    joinRoomButton.addEventListener("click", async () => {
+      const code = roomCodeInput.value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        setStatus("Введите 6-значный код комнаты.", true);
+        return;
+      }
+
+      await invokeHub("JoinRoom", code);
+    });
+
+    setTrackButton.addEventListener("click", async () => {
+      const url = trackUrlInput.value.trim();
+      if (!url) {
+        setStatus("Укажите URL трека.", true);
+        return;
+      }
+
+      prepareAudio(url);
+      await invokeHub("SetTrack", url);
+    });
+
+    readyButton.addEventListener("click", async () => {
+      await unlockAudio();
+      await invokeHub("SetReady");
+    });
+
+    startButton.addEventListener("click", async () => {
+      await unlockAudio();
+      await invokeHub("StartPlayback");
+    });
+
+    roomCodeInput.addEventListener("input", () => {
+      roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 6);
+    });
+
+    start();
+
+    async function start() {
+      try {
+        await connection.start();
+        updateConnectionState("Подключено", "connected");
+        await syncClock();
+        setStatus("SignalR подключен. Создайте комнату или войдите по коду.");
+      } catch (error) {
+        updateConnectionState("Ошибка", "disconnected");
+        setStatus(`Не удалось подключиться: ${error.message}`, true);
+        setTimeout(start, 3000);
+      }
+    }
+
+    async function invokeHub(method, ...args) {
+      try {
+        return await connection.invoke(method, ...args);
+      } catch (error) {
+        setStatus(error.message || "Ошибка SignalR запроса.", true);
+        return null;
+      }
+    }
+
+    async function syncClock() {
+      const samples = [];
+
+      for (let i = 0; i < 5; i += 1) {
+        const sentAt = Date.now();
+        const serverTime = await connection.invoke("GetServerTime");
+        const receivedAt = Date.now();
+        const rtt = receivedAt - sentAt;
+        const serverMs = new Date(serverTime).getTime();
+
+        samples.push(serverMs + rtt / 2 - receivedAt);
+      }
+
+      samples.sort((a, b) => Math.abs(a) - Math.abs(b));
+      clockOffsetMs = samples[0] || 0;
+    }
+
+    function renderRoom(snapshot) {
+      currentRoom = snapshot;
+      roomCode.textContent = snapshot.roomCode;
+      trackUrlInput.value = snapshot.trackUrl || trackUrlInput.value;
+      roomMeta.textContent = `${snapshot.users.length} участник(ов), ${snapshot.users.filter(user => user.isReady).length} готовы.`;
+
+      if (snapshot.trackUrl && audio.src !== snapshot.trackUrl) {
+        prepareAudio(snapshot.trackUrl);
+      }
+
+      participants.innerHTML = "";
+      snapshot.users.forEach(user => {
+        const li = document.createElement("li");
+        li.className = "participant";
+        li.innerHTML = `
+          <span>${escapeHtml(user.name)}</span>
+          <span class="badge ${user.isReady ? "ready" : ""}">${user.isReady ? "Готов" : "Ожидает"}</span>
+        `;
+        participants.appendChild(li);
+      });
+
+      if (snapshot.users.length === 0) {
+        participants.innerHTML = '<li class="participant"><span>Пока никого нет</span><span class="badge">Пусто</span></li>';
+      }
+
+      setControlsEnabled(true);
+    }
+
+    function setControlsEnabled(joinedRoom) {
+      const connected = connection.state === signalR.HubConnectionState.Connected;
+      setTrackButton.disabled = !connected || !joinedRoom;
+      readyButton.disabled = !connected || !joinedRoom || !audio.src;
+      startButton.disabled = !connected || !joinedRoom || !audio.src;
+    }
+
+    function prepareAudio(url) {
+      if (!url) {
+        return;
+      }
+
+      audio.src = url;
+      audio.preload = "auto";
+      audio.load();
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    async function unlockAudio() {
+      if (!audio.src) {
+        return;
+      }
+
+      const wasMuted = audio.muted;
+
+      try {
+        audio.muted = true;
+        await audio.play();
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        // Browser may block autoplay; a manual click on the audio controls will unlock it.
+      } finally {
+        audio.muted = wasMuted;
+      }
+    }
+
+    function scheduleLocalPlayback(startAt) {
+      clearInterval(countdownTimer);
+      audio.currentTime = 0;
+
+      const startAtMs = new Date(startAt).getTime();
+      const delay = Math.max(0, startAtMs - (Date.now() + clockOffsetMs));
+
+      setStatus(`Старт назначен на ${new Date(startAt).toLocaleTimeString("ru-RU", { timeZone: "UTC" })} UTC.`);
+      renderCountdown(delay);
+
+      countdownTimer = setInterval(() => {
+        const leftMs = Math.max(0, startAtMs - (Date.now() + clockOffsetMs));
+        renderCountdown(leftMs);
+      }, 100);
+
+      setTimeout(async () => {
+        clearInterval(countdownTimer);
+        countdown.textContent = "Старт";
+
+        try {
+          await audio.play();
+          setStatus("Воспроизведение запущено.");
+        } catch (error) {
+          setStatus(`Браузер заблокировал запуск: ${error.message}`, true);
+        }
+      }, delay);
+    }
+
+    function renderCountdown(leftMs) {
+      countdown.textContent = leftMs <= 0
+        ? "Старт"
+        : `${(leftMs / 1000).toFixed(1)} сек`;
+    }
+
+    function updateConnectionState(text, stateClass) {
+      connectionText.textContent = text;
+      connectionDot.className = `dot ${stateClass}`;
+    }
+
+    function setStatus(message, isError = false) {
+      statusBox.textContent = message;
+      statusBox.classList.toggle("error", isError);
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
