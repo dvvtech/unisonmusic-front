@@ -216,19 +216,6 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
-    .badge {
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 12px;
-      font-weight: 800;
-      color: #06121f;
-      background: var(--yellow);
-    }
-
-    .badge.ready {
-      background: var(--green);
-    }
-
     .player {
       width: 100%;
       min-height: 46px;
@@ -328,7 +315,6 @@
       <audio id="audio" class="player" preload="auto" controls></audio>
 
       <div class="row">
-        <button id="readyButton" disabled>Готов слушать</button>
         <button id="startButton" class="warning" disabled>Начать</button>
       </div>
       <div id="countdown" class="countdown">Ожидание</div>
@@ -338,13 +324,12 @@
     <aside class="panel stack">
       <h2 class="section-title">Участники</h2>
       <ul id="participants" class="participants"></ul>
-      <div class="meta">Когда все участники нажмут "Готов слушать", сервер автоматически разошлет UTC-время старта.</div>
     </aside>
   </main>
 
   <script>
-    //const hubUrl = "http://192.168.0.47:5113/hubs/music";
-    const hubUrl = "https://api.cloud-platform.pro/unisonmusic/hubs/music";
+    const hubUrl = "http://192.168.0.47:5113/hubs/music";
+    //const hubUrl = "https://api.cloud-platform.pro/unisonmusic/hubs/music";
 
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
@@ -355,7 +340,6 @@
     const roomMeta = document.getElementById("roomMeta");
     const trackUrlInput = document.getElementById("trackUrlInput");
     const setTrackButton = document.getElementById("setTrackButton");
-    const readyButton = document.getElementById("readyButton");
     const startButton = document.getElementById("startButton");
     const participants = document.getElementById("participants");
     const statusBox = document.getElementById("status");
@@ -383,13 +367,13 @@
 
     connection.on("UserReadyUpdate", snapshot => {
       renderRoom(snapshot);
-      setStatus(snapshot.allReady ? "Все готовы. Сервер назначает старт..." : "Статус готовности обновлен.");
+      setStatus(snapshot.allReady ? "Сервер назначает старт..." : "Комната обновлена.");
     });
 
     connection.on("TrackUpdated", snapshot => {
       renderRoom(snapshot);
       prepareAudio(snapshot.trackUrl);
-      setStatus("Трек загружен у участников, готовность сброшена.");
+      setStatus("Трек загружен у участников.");
     });
 
     connection.on("ReceiveStartTime", command => {
@@ -437,11 +421,6 @@
 
       prepareAudio(url);
       await invokeHub("SetTrack", url);
-    });
-
-    readyButton.addEventListener("click", async () => {
-      await unlockAudio();
-      await invokeHub("SetReady");
     });
 
     startButton.addEventListener("click", async () => {
@@ -498,7 +477,7 @@
       currentRoom = snapshot;
       roomCode.textContent = snapshot.roomCode;
       trackUrlInput.value = snapshot.trackUrl || trackUrlInput.value;
-      roomMeta.textContent = `${snapshot.users.length} участник(ов), ${snapshot.users.filter(user => user.isReady).length} готовы.`;
+      roomMeta.textContent = `${snapshot.users.length} участник(ов).`;
 
       if (snapshot.trackUrl && audio.src !== snapshot.trackUrl) {
         prepareAudio(snapshot.trackUrl);
@@ -508,15 +487,12 @@
       snapshot.users.forEach(user => {
         const li = document.createElement("li");
         li.className = "participant";
-        li.innerHTML = `
-          <span>${escapeHtml(user.name)}</span>
-          <span class="badge ${user.isReady ? "ready" : ""}">${user.isReady ? "Готов" : "Ожидает"}</span>
-        `;
+        li.innerHTML = `<span>${escapeHtml(user.name)}</span>`;
         participants.appendChild(li);
       });
 
       if (snapshot.users.length === 0) {
-        participants.innerHTML = '<li class="participant"><span>Пока никого нет</span><span class="badge">Пусто</span></li>';
+        participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
       }
 
       setControlsEnabled(true);
@@ -525,7 +501,6 @@
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
       setTrackButton.disabled = !connected || !joinedRoom;
-      readyButton.disabled = !connected || !joinedRoom || !audio.src;
       startButton.disabled = !connected || !joinedRoom || !audio.src;
     }
 
