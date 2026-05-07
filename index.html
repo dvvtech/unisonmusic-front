@@ -582,7 +582,7 @@
       clearTimeout(startTimeout);
 
       const startPosition = Math.max(0, Number(positionSeconds) || 0);
-      audio.currentTime = Math.min(startPosition, audio.duration || startPosition);
+      setAudioPosition(startPosition);
       pausedPositionSeconds = null;
       playbackActive = true;
       setControlsEnabled(Boolean(currentRoom));
@@ -603,6 +603,9 @@
         countdown.textContent = "Старт";
 
         try {
+          const elapsedSeconds = Math.max(0, ((Date.now() + clockOffsetMs) - startAtMs) / 1000);
+          const targetPosition = startPosition + elapsedSeconds;
+          setAudioPosition(targetPosition);
           await audio.play();
           setStatus("Воспроизведение запущено.");
         } catch (error) {
@@ -621,7 +624,7 @@
       audio.pause();
 
       if (audio.src) {
-        audio.currentTime = Math.min(targetPosition, audio.duration || targetPosition);
+        setAudioPosition(targetPosition);
       }
 
       pausedPositionSeconds = targetPosition;
@@ -629,6 +632,11 @@
       setControlsEnabled(Boolean(currentRoom));
       countdown.textContent = "Остановлено";
       setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
+    }
+
+    function setAudioPosition(positionSeconds) {
+      const targetPosition = Math.max(0, Number(positionSeconds) || 0);
+      audio.currentTime = Math.min(targetPosition, audio.duration || targetPosition);
     }
 
     function renderCountdown(leftMs) {
