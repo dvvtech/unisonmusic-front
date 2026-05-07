@@ -316,6 +316,7 @@
 
       <div class="row">
         <button id="startButton" class="warning" disabled>Начать</button>
+        <button id="stopButton" class="secondary" disabled>Остановить</button>
       </div>
       <div id="countdown" class="countdown">Ожидание</div>
       <div id="status" class="status">Подключаемся к SignalR...</div>
@@ -341,6 +342,7 @@
     const trackUrlInput = document.getElementById("trackUrlInput");
     const setTrackButton = document.getElementById("setTrackButton");
     const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
     const participants = document.getElementById("participants");
     const statusBox = document.getElementById("status");
     const countdown = document.getElementById("countdown");
@@ -349,6 +351,7 @@
     let currentRoom = null;
     let clockOffsetMs = 0;
     let countdownTimer = null;
+    let startTimeout = null;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -378,6 +381,10 @@
 
     connection.on("ReceiveStartTime", command => {
       scheduleLocalPlayback(command.startAt);
+    });
+
+    connection.on("ReceivePause", command => {
+      stopLocalPlayback(command.positionSeconds);
     });
 
     connection.onreconnecting(() => {
@@ -426,6 +433,10 @@
     startButton.addEventListener("click", async () => {
       await unlockAudio();
       await invokeHub("StartPlayback");
+    });
+
+    stopButton.addEventListener("click", async () => {
+      await invokeHub("PausePlayback", audio.currentTime || 0);
     });
 
     roomCodeInput.addEventListener("input", () => {
@@ -502,6 +513,7 @@
       const connected = connection.state === signalR.HubConnectionState.Connected;
       setTrackButton.disabled = !connected || !joinedRoom;
       startButton.disabled = !connected || !joinedRoom || !audio.src;
+      stopButton.disabled = !connected || !joinedRoom || !audio.src;
     }
 
     function prepareAudio(url) {
@@ -536,6 +548,7 @@
 
     function scheduleLocalPlayback(startAt) {
       clearInterval(countdownTimer);
+      clearTimeout(startTimeout);
       audio.currentTime = 0;
 
       const startAtMs = new Date(startAt).getTime();
@@ -549,7 +562,7 @@
         renderCountdown(leftMs);
       }, 100);
 
-      setTimeout(async () => {
+      startTimeout = setTimeout(async () => {
         clearInterval(countdownTimer);
         countdown.textContent = "Старт";
 
@@ -560,6 +573,21 @@
           setStatus(`Браузер заблокировал запуск: ${error.message}`, true);
         }
       }, delay);
+    }
+
+    function stopLocalPlayback(positionSeconds) {
+      clearInterval(countdownTimer);
+      clearTimeout(startTimeout);
+
+      const targetPosition = Math.max(0, Number(positionSeconds) || 0);
+      audio.pause();
+
+      if (audio.src) {
+        audio.currentTime = Math.min(targetPosition, audio.duration || targetPosition);
+      }
+
+      countdown.textContent = "Остановлено";
+      setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
     }
 
     function renderCountdown(leftMs) {
