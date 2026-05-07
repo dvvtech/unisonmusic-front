@@ -355,6 +355,7 @@
     let countdownTimer = null;
     let startTimeout = null;
     let pausedPositionSeconds = null;
+    let playbackActive = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -435,7 +436,14 @@
 
     startButton.addEventListener("click", async () => {
       await unlockAudio();
-      await invokeHub("StartPlayback");
+      playbackActive = true;
+      setControlsEnabled(Boolean(currentRoom));
+
+      const command = await invokeHub("StartPlayback");
+      if (!command) {
+        playbackActive = false;
+        setControlsEnabled(Boolean(currentRoom));
+      }
     });
 
     stopButton.addEventListener("click", async () => {
@@ -449,7 +457,14 @@
       }
 
       await unlockAudio();
-      await invokeHub("ContinuePlayback", pausedPositionSeconds);
+      playbackActive = true;
+      setControlsEnabled(Boolean(currentRoom));
+
+      const command = await invokeHub("ContinuePlayback", pausedPositionSeconds);
+      if (!command) {
+        playbackActive = false;
+        setControlsEnabled(Boolean(currentRoom));
+      }
     });
 
     roomCodeInput.addEventListener("input", () => {
@@ -525,9 +540,9 @@
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
       setTrackButton.disabled = !connected || !joinedRoom;
-      startButton.disabled = !connected || !joinedRoom || !audio.src;
-      stopButton.disabled = !connected || !joinedRoom || !audio.src;
-      continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null;
+      startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
+      stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
+      continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
 
     function prepareAudio(url) {
@@ -539,6 +554,7 @@
       audio.preload = "auto";
       audio.load();
       pausedPositionSeconds = null;
+      playbackActive = false;
       setControlsEnabled(Boolean(currentRoom));
     }
 
@@ -568,6 +584,7 @@
       const startPosition = Math.max(0, Number(positionSeconds) || 0);
       audio.currentTime = Math.min(startPosition, audio.duration || startPosition);
       pausedPositionSeconds = null;
+      playbackActive = true;
       setControlsEnabled(Boolean(currentRoom));
 
       const startAtMs = new Date(startAt).getTime();
@@ -589,6 +606,8 @@
           await audio.play();
           setStatus("Воспроизведение запущено.");
         } catch (error) {
+          playbackActive = false;
+          setControlsEnabled(Boolean(currentRoom));
           setStatus(`Браузер заблокировал запуск: ${error.message}`, true);
         }
       }, delay);
@@ -606,6 +625,7 @@
       }
 
       pausedPositionSeconds = targetPosition;
+      playbackActive = false;
       setControlsEnabled(Boolean(currentRoom));
       countdown.textContent = "Остановлено";
       setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
