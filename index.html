@@ -423,7 +423,7 @@
     });
 
     createRoomButton.addEventListener("click", async () => {
-      await invokeHub("CreateRoom");
+      await invokeHub("CreateRoom", await getClientDeviceInfo());
     });
 
     joinRoomButton.addEventListener("click", async () => {
@@ -433,7 +433,7 @@
         return;
       }
 
-      await invokeHub("JoinRoom", code);
+      await invokeHub("JoinRoom", code, await getClientDeviceInfo());
     });
 
     setTrackButton.addEventListener("click", async () => {
@@ -505,6 +505,65 @@
         setStatus(`Не удалось подключиться: ${error.message}`, true);
         setTimeout(start, 3000);
       }
+    }
+
+    async function getClientDeviceInfo() {
+      const userAgentData = navigator.userAgentData;
+
+      if (!userAgentData || typeof userAgentData.getHighEntropyValues !== "function") {
+        return null;
+      }
+
+      try {
+        const hints = await userAgentData.getHighEntropyValues(["model", "platform", "platformVersion"]);
+        const deviceType = userAgentData.mobile ? "Телефон" : null;
+        const model = cleanClientHintValue(hints.model);
+        const os = formatClientHintsOs(hints.platform, hints.platformVersion);
+
+        if (!deviceType && !model && !os) {
+          return null;
+        }
+
+        return {
+          DeviceType: deviceType,
+          Model: model,
+          Os: os
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function formatClientHintsOs(platform, platformVersion) {
+      const os = cleanClientHintValue(platform);
+      const version = cleanClientHintValue(platformVersion);
+
+      if (!os) {
+        return null;
+      }
+
+      if (os.toLowerCase() === "android" && version) {
+        return `Android ${version}`;
+      }
+
+      if (os.toLowerCase() === "ios" && version) {
+        return `iOS ${version.replaceAll("_", ".")}`;
+      }
+
+      if (os.toLowerCase() === "macos") {
+        return "macOS";
+      }
+
+      return os;
+    }
+
+    function cleanClientHintValue(value) {
+      if (!value || typeof value !== "string") {
+        return null;
+      }
+
+      const cleaned = value.trim();
+      return cleaned ? cleaned : null;
     }
 
     async function invokeHub(method, ...args) {
