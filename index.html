@@ -349,13 +349,23 @@
     const statusBox = document.getElementById("status");
     const countdown = document.getElementById("countdown");
     const audio = document.getElementById("audio");
+    const clockSyncIntervalMs = 30000;
+    const playbackCorrectionIntervalMs = 1000;
+    const softSyncThresholdSeconds = 0.04;
+    const hardSyncThresholdSeconds = 0.45;
+    const playbackRateAdjustment = 0.02;
 
     let currentRoom = null;
     let clockOffsetMs = 0;
+    let clockSyncTimer = null;
+    let clockSyncInProgress = false;
     let countdownTimer = null;
     let startTimeout = null;
     let pausedPositionSeconds = null;
     let playbackActive = false;
+    let playbackCorrectionTimer = null;
+    let playbackSyncStartAtMs = null;
+    let playbackSyncStartPositionSeconds = 0;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -393,6 +403,7 @@
 
     connection.onreconnecting(() => {
       updateConnectionState("Переподключение", "disconnected");
+      stopClockSync();
       setControlsEnabled(false);
     });
 
@@ -400,11 +411,13 @@
       updateConnectionState("Подключено", "connected");
       setControlsEnabled(Boolean(currentRoom));
       await syncClock();
+      startClockSync();
       setStatus("Соединение восстановлено.");
     });
 
     connection.onclose(() => {
       updateConnectionState("Отключено", "disconnected");
+      stopClockSync();
       setControlsEnabled(false);
       setStatus("SignalR соединение закрыто.", true);
     });
@@ -471,6 +484,13 @@
       roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 6);
     });
 
+    audio.addEventListener("ended", () => {
+      stopPlaybackCorrection();
+      playbackActive = false;
+      pausedPositionSeconds = null;
+      setControlsEnabled(Boolean(currentRoom));
+    });
+
     start();
 
     async function start() {
@@ -478,6 +498,7 @@
         await connection.start();
         updateConnectionState("Подключено", "connected");
         await syncClock();
+        startClockSync();
         setStatus("SignalR подключен. Создайте комнату или войдите по коду.");
       } catch (error) {
         updateConnectionState("Ошибка", "disconnected");
@@ -496,20 +517,44 @@
     }
 
     async function syncClock() {
-      const samples = [];
-
-      for (let i = 0; i < 5; i += 1) {
-        const sentAt = Date.now();
-        const serverTime = await connection.invoke("GetServerTime");
-        const receivedAt = Date.now();
-        const rtt = receivedAt - sentAt;
-        const serverMs = new Date(serverTime).getTime();
-
-        samples.push(serverMs + rtt / 2 - receivedAt);
+      if (clockSyncInProgress || connection.state !== signalR.HubConnectionState.Connected) {
+        return;
       }
 
-      samples.sort((a, b) => Math.abs(a) - Math.abs(b));
-      clockOffsetMs = samples[0] || 0;
+      clockSyncInProgress = true;
+      const samples = [];
+
+      try {
+        for (let i = 0; i < 5; i += 1) {
+          const sentAt = Date.now();
+          const serverTime = await connection.invoke("GetServerTime");
+          const receivedAt = Date.now();
+          const rtt = receivedAt - sentAt;
+          const serverMs = new Date(serverTime).getTime();
+
+          samples.push({
+            offsetMs: serverMs + rtt / 2 - receivedAt,
+            rtt
+          });
+        }
+
+        samples.sort((a, b) => a.rtt - b.rtt);
+        clockOffsetMs = samples[0]?.offsetMs ?? clockOffsetMs;
+      } finally {
+        clockSyncInProgress = false;
+      }
+    }
+
+    function startClockSync() {
+      stopClockSync();
+      clockSyncTimer = setInterval(() => {
+        syncClock().catch(() => {});
+      }, clockSyncIntervalMs);
+    }
+
+    function stopClockSync() {
+      clearInterval(clockSyncTimer);
+      clockSyncTimer = null;
     }
 
     function renderRoom(snapshot) {
@@ -553,6 +598,7 @@
       audio.src = url;
       audio.preload = "auto";
       audio.load();
+      stopPlaybackCorrection();
       pausedPositionSeconds = null;
       playbackActive = false;
       setControlsEnabled(Boolean(currentRoom));
@@ -580,6 +626,7 @@
     function scheduleLocalPlayback(startAt, positionSeconds = 0) {
       clearInterval(countdownTimer);
       clearTimeout(startTimeout);
+      stopPlaybackCorrection();
 
       const startPosition = Math.max(0, Number(positionSeconds) || 0);
       setAudioPosition(startPosition);
@@ -607,8 +654,10 @@
           const targetPosition = startPosition + elapsedSeconds;
           setAudioPosition(targetPosition);
           await audio.play();
+          startPlaybackCorrection(startAtMs, startPosition);
           setStatus("Воспроизведение запущено.");
         } catch (error) {
+          stopPlaybackCorrection();
           playbackActive = false;
           setControlsEnabled(Boolean(currentRoom));
           setStatus(`Браузер заблокировал запуск: ${error.message}`, true);
@@ -619,6 +668,7 @@
     function stopLocalPlayback(positionSeconds) {
       clearInterval(countdownTimer);
       clearTimeout(startTimeout);
+      stopPlaybackCorrection();
 
       const targetPosition = Math.max(0, Number(positionSeconds) || 0);
       audio.pause();
@@ -632,6 +682,57 @@
       setControlsEnabled(Boolean(currentRoom));
       countdown.textContent = "Остановлено";
       setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
+    }
+
+    function startPlaybackCorrection(startAtMs, startPositionSeconds) {
+      stopPlaybackCorrection();
+      playbackSyncStartAtMs = startAtMs;
+      playbackSyncStartPositionSeconds = startPositionSeconds;
+      playbackCorrectionTimer = setInterval(correctPlaybackPosition, playbackCorrectionIntervalMs);
+      correctPlaybackPosition();
+    }
+
+    function stopPlaybackCorrection() {
+      clearInterval(playbackCorrectionTimer);
+      playbackCorrectionTimer = null;
+      playbackSyncStartAtMs = null;
+      playbackSyncStartPositionSeconds = 0;
+      audio.playbackRate = 1;
+    }
+
+    function correctPlaybackPosition() {
+      if (!playbackActive || playbackSyncStartAtMs === null) {
+        return;
+      }
+
+      if (audio.paused) {
+        audio.playbackRate = 1;
+        return;
+      }
+
+      const serverNowMs = Date.now() + clockOffsetMs;
+      const elapsedSeconds = Math.max(0, (serverNowMs - playbackSyncStartAtMs) / 1000);
+      const expectedPosition = playbackSyncStartPositionSeconds + elapsedSeconds;
+      const driftSeconds = expectedPosition - audio.currentTime;
+
+      if (!Number.isFinite(driftSeconds)) {
+        return;
+      }
+
+      if (Math.abs(driftSeconds) >= hardSyncThresholdSeconds) {
+        setAudioPosition(expectedPosition);
+        audio.playbackRate = 1;
+        return;
+      }
+
+      if (Math.abs(driftSeconds) >= softSyncThresholdSeconds) {
+        audio.playbackRate = driftSeconds > 0
+          ? 1 + playbackRateAdjustment
+          : 1 - playbackRateAdjustment;
+        return;
+      }
+
+      audio.playbackRate = 1;
     }
 
     function setAudioPosition(positionSeconds) {
