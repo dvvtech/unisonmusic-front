@@ -852,14 +852,31 @@
       setControlsEnabled(true);
     }
 
+    function isValidUrl(str) {
+      try {
+        const u = new URL(str);
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }
+
+    function updateSetTrackButton() {
+      const connected = connection.state === signalR.HubConnectionState.Connected;
+      const url = trackUrlInput.value.trim();
+      setTrackButton.disabled = !connected || !currentRoom || trackUploadInProgress || !isValidUrl(url);
+    }
+
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
       pasteUrlButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
-      setTrackButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
+      updateSetTrackButton();
       startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
       stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
       continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
+
+    trackUrlInput.addEventListener("input", updateSetTrackButton);
 
     async function uploadTrackFromUrl(url, signal) {
       const response = await fetch(uploadFromUrlEndpoint, {
