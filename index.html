@@ -176,6 +176,22 @@
       opacity: 0.48;
     }
 
+    button.loading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 720ms linear infinite;
+    }
+
     .room-code {
       display: inline-flex;
       align-items: center;
@@ -221,6 +237,14 @@
       min-height: 46px;
     }
 
+    .track-title {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
     .status {
       min-height: 42px;
       border-left: 3px solid var(--blue);
@@ -256,6 +280,12 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
       }
     }
 
@@ -309,9 +339,10 @@
 
       <h2 class="section-title">Трек</h2>
       <div class="row">
-        <input id="trackUrlInput" type="url" placeholder="URL трека, например https://site.ru/song.mp3">
+        <input id="trackUrlInput" type="url" placeholder="URL музыки со стримингового сервиса">
         <button id="setTrackButton" class="secondary" disabled>Загрузить</button>
       </div>
+      <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
       <audio id="audio" class="player" preload="auto" controls></audio>
 
       <div class="row">
@@ -332,6 +363,7 @@
   <script>
     //const hubUrl = "http://192.168.0.47:5113/hubs/music";
     const hubUrl = "https://api.cloud-platform.pro/unisonmusic/hubs/music";
+    const uploadFromUrlEndpoint = "https://api.cloud-platform.pro/unisonmusic/file/upload-from-url";
 
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
@@ -347,6 +379,7 @@
     const continueButton = document.getElementById("continueButton");
     const participants = document.getElementById("participants");
     const statusBox = document.getElementById("status");
+    const trackTitle = document.getElementById("trackTitle");
     const countdown = document.getElementById("countdown");
     const audio = document.getElementById("audio");
     const clockSyncIntervalMs = 30000;
@@ -366,6 +399,7 @@
     let playbackCorrectionTimer = null;
     let playbackSyncStartAtMs = null;
     let playbackSyncStartPositionSeconds = 0;
+    let trackUploadInProgress = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -443,8 +477,31 @@
         return;
       }
 
-      prepareAudio(url);
-      await invokeHub("SetTrack", url);
+      setTrackUploadInProgress(true);
+      setStatus("Загружаем трек из стримингового сервиса...");
+
+      try {
+        const uploadedTrack = await uploadTrackFromUrl(url);
+        const s3Url = uploadedTrack.s3Url || uploadedTrack.S3Url;
+        const sourceUrl = uploadedTrack.url || uploadedTrack.Url || url;
+        const title = uploadedTrack.trackTitle || uploadedTrack.TrackTitle || "";
+
+        if (!s3Url) {
+          throw new Error("Сервер не вернул S3 URL трека.");
+        }
+
+        trackUrlInput.value = sourceUrl;
+        prepareAudio(s3Url, title);
+
+        const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl);
+        if (snapshot) {
+          setStatus("Трек загружен и готов к воспроизведению.");
+        }
+      } catch (error) {
+        setStatus(error.message || "Не удалось загрузить трек.", true);
+      } finally {
+        setTrackUploadInProgress(false);
+      }
     });
 
     startButton.addEventListener("click", async () => {
@@ -619,11 +676,12 @@
     function renderRoom(snapshot) {
       currentRoom = snapshot;
       roomCode.textContent = snapshot.roomCode;
-      trackUrlInput.value = snapshot.trackUrl || trackUrlInput.value;
+      trackUrlInput.value = snapshot.trackSourceUrl || trackUrlInput.value;
+      renderTrackTitle(snapshot.trackTitle);
       roomMeta.textContent = `${snapshot.users.length} участник(ов).`;
 
       if (snapshot.trackUrl && audio.src !== snapshot.trackUrl) {
-        prepareAudio(snapshot.trackUrl);
+        prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
       }
 
       participants.innerHTML = "";
@@ -643,13 +701,39 @@
 
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
-      setTrackButton.disabled = !connected || !joinedRoom;
+      setTrackButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
       startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
       stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
       continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
 
-    function prepareAudio(url) {
+    async function uploadTrackFromUrl(url) {
+      const response = await fetch(uploadFromUrlEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Ошибка загрузки трека: ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    function setTrackUploadInProgress(inProgress) {
+      trackUploadInProgress = inProgress;
+      setTrackButton.classList.toggle("loading", inProgress);
+      setTrackButton.innerHTML = inProgress
+        ? '<span class="spinner" aria-hidden="true"></span><span>Загрузка</span>'
+        : "Загрузить";
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function prepareAudio(url, title = "") {
       if (!url) {
         return;
       }
@@ -660,7 +744,14 @@
       stopPlaybackCorrection();
       pausedPositionSeconds = null;
       playbackActive = false;
+      renderTrackTitle(title);
       setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function renderTrackTitle(title) {
+      trackTitle.textContent = title?.trim()
+        ? `Сейчас выбран: ${title.trim()}`
+        : "Трек еще не выбран.";
     }
 
     async function unlockAudio() {
