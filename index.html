@@ -183,6 +183,33 @@
       gap: 8px;
     }
 
+    button.icon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      font-weight: 700;
+    }
+
+    button.icon-btn svg {
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+
+    button.icon-btn:hover:not(:disabled) svg {
+      opacity: 1;
+    }
+
+    button.icon-btn.pasted {
+      border-color: var(--green);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
+    }
+
+    button.icon-btn.pasted svg {
+      opacity: 1;
+      stroke: var(--green);
+    }
+
     .spinner {
       width: 16px;
       height: 16px;
@@ -415,6 +442,10 @@
       <h2 class="section-title">Трек</h2>
       <div class="row">
         <input id="trackUrlInput" type="url" placeholder="URL музыки со стримингового сервиса">
+        <button id="pasteUrlButton" class="secondary icon-btn" type="button" title="Вставить URL из буфера обмена">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          <span>Вставить</span>
+        </button>
         <button id="setTrackButton" class="secondary" disabled>Загрузить</button>
       </div>
       <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
@@ -457,6 +488,7 @@
     const roomCode = document.getElementById("roomCode");
     const roomMeta = document.getElementById("roomMeta");
     const trackUrlInput = document.getElementById("trackUrlInput");
+    const pasteUrlButton = document.getElementById("pasteUrlButton");
     const setTrackButton = document.getElementById("setTrackButton");
     const startButton = document.getElementById("startButton");
     const stopButton = document.getElementById("stopButton");
@@ -602,6 +634,23 @@
       trackUploadAbortController?.abort();
       setTrackUploadInProgress(false);
       setStatus("Отменяем загрузку...");
+    });
+
+    pasteUrlButton.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) {
+          setStatus("Буфер обмена пуст.", true);
+          return;
+        }
+        trackUrlInput.value = text.trim();
+        trackUrlInput.dispatchEvent(new Event("input"));
+        pasteUrlButton.classList.add("pasted");
+        setStatus("URL вставлен из буфера обмена.");
+        setTimeout(() => pasteUrlButton.classList.remove("pasted"), 1500);
+      } catch {
+        setStatus("Нет доступа к буферу обмена. Вставьте вручную (Ctrl+V).", true);
+      }
     });
 
     startButton.addEventListener("click", async () => {
@@ -801,6 +850,7 @@
 
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
+      pasteUrlButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
       setTrackButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
       startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
       stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
