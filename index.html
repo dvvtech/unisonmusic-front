@@ -192,6 +192,81 @@
       animation: spin 720ms linear infinite;
     }
 
+    body.busy {
+      overflow: hidden;
+    }
+
+    body.busy .app {
+      pointer-events: none;
+      user-select: none;
+      filter: blur(2px) saturate(0.75);
+    }
+
+    .busy-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .busy-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .busy-dialog {
+      width: min(360px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      padding: 26px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
+      text-align: center;
+    }
+
+    .busy-ring {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      background:
+        conic-gradient(from 0deg, #38bdf8, #34d399, #fbbf24, #38bdf8);
+      display: grid;
+      place-items: center;
+      animation: spin 980ms linear infinite;
+    }
+
+    .busy-ring::after {
+      content: "";
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #0f172a;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .busy-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .busy-text {
+      margin: -8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
     .room-code {
       display: inline-flex;
       align-items: center;
@@ -318,7 +393,7 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <main id="appRoot" class="app">
     <section class="panel brand">
       <div>
         <h1>Unisonmusic</h1>
@@ -360,6 +435,15 @@
     </aside>
   </main>
 
+  <div id="uploadOverlay" class="busy-overlay" hidden>
+    <div class="busy-dialog" role="alertdialog" aria-modal="true" aria-labelledby="uploadOverlayTitle">
+      <div class="busy-ring" aria-hidden="true"></div>
+      <p id="uploadOverlayTitle" class="busy-title">Загружаем трек</p>
+      <p class="busy-text">Скачиваем музыку и готовим ее для синхронного воспроизведения.</p>
+      <button id="cancelUploadButton" class="secondary" type="button">Отмена</button>
+    </div>
+  </div>
+
   <script>
     //const hubUrl = "http://192.168.0.47:5113/hubs/music";
     const hubUrl = "https://api.cloud-platform.pro/unisonmusic/hubs/music";
@@ -380,6 +464,9 @@
     const participants = document.getElementById("participants");
     const statusBox = document.getElementById("status");
     const trackTitle = document.getElementById("trackTitle");
+    const uploadOverlay = document.getElementById("uploadOverlay");
+    const cancelUploadButton = document.getElementById("cancelUploadButton");
+    const appRoot = document.getElementById("appRoot");
     const countdown = document.getElementById("countdown");
     const audio = document.getElementById("audio");
     const clockSyncIntervalMs = 30000;
@@ -400,6 +487,7 @@
     let playbackSyncStartAtMs = null;
     let playbackSyncStartPositionSeconds = 0;
     let trackUploadInProgress = false;
+    let trackUploadAbortController = null;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -477,11 +565,12 @@
         return;
       }
 
+      trackUploadAbortController = new AbortController();
       setTrackUploadInProgress(true);
       setStatus("Загружаем трек из стримингового сервиса...");
 
       try {
-        const uploadedTrack = await uploadTrackFromUrl(url);
+        const uploadedTrack = await uploadTrackFromUrl(url, trackUploadAbortController.signal);
         const s3Url = uploadedTrack.s3Url || uploadedTrack.S3Url;
         const sourceUrl = uploadedTrack.url || uploadedTrack.Url || url;
         const title = uploadedTrack.trackTitle || uploadedTrack.TrackTitle || "";
@@ -498,10 +587,21 @@
           setStatus("Трек загружен и готов к воспроизведению.");
         }
       } catch (error) {
-        setStatus(error.message || "Не удалось загрузить трек.", true);
+        if (error.name === "AbortError") {
+          setStatus("Загрузка отменена.", true);
+        } else {
+          setStatus(error.message || "Не удалось загрузить трек.", true);
+        }
       } finally {
+        trackUploadAbortController = null;
         setTrackUploadInProgress(false);
       }
+    });
+
+    cancelUploadButton.addEventListener("click", () => {
+      trackUploadAbortController?.abort();
+      setTrackUploadInProgress(false);
+      setStatus("Отменяем загрузку...");
     });
 
     startButton.addEventListener("click", async () => {
@@ -707,13 +807,14 @@
       continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
 
-    async function uploadTrackFromUrl(url) {
+    async function uploadTrackFromUrl(url, signal) {
       const response = await fetch(uploadFromUrlEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url }),
+        signal
       });
 
       if (!response.ok) {
@@ -726,10 +827,16 @@
 
     function setTrackUploadInProgress(inProgress) {
       trackUploadInProgress = inProgress;
+      document.body.classList.toggle("busy", inProgress);
+      appRoot.inert = inProgress;
+      appRoot.setAttribute("aria-busy", String(inProgress));
+      uploadOverlay.hidden = !inProgress;
+      uploadOverlay.classList.toggle("active", inProgress);
       setTrackButton.classList.toggle("loading", inProgress);
       setTrackButton.innerHTML = inProgress
         ? '<span class="spinner" aria-hidden="true"></span><span>Загрузка</span>'
         : "Загрузить";
+      cancelUploadButton.disabled = !inProgress;
       setControlsEnabled(Boolean(currentRoom));
     }
 
