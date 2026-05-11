@@ -331,10 +331,10 @@
       <h2 class="section-title">Комната</h2>
       <button id="createRoomButton">Создать комнату</button>
       <div class="row">
-        <input id="roomCodeInput" inputmode="numeric" maxlength="6" placeholder="Ввести код комнаты">
+        <input id="roomCodeInput" inputmode="numeric" maxlength="4" placeholder="Ввести код комнаты">
         <button id="joinRoomButton" class="secondary">Войти</button>
       </div>
-      <div id="roomCode" class="room-code">------</div>
+      <div id="roomCode" class="room-code">---</div>
       <div id="roomMeta" class="meta">Комната еще не выбрана.</div>
 
       <h2 class="section-title">Трек</h2>
@@ -462,8 +462,8 @@
 
     joinRoomButton.addEventListener("click", async () => {
       const code = roomCodeInput.value.trim();
-      if (!/^\d{6}$/.test(code)) {
-        setStatus("Введите 6-значный код комнаты.", true);
+      if (!/^\d{3,4}$/.test(code)) {
+        setStatus("Введите 3- или 4-значный код комнаты.", true);
         return;
       }
 
@@ -538,7 +538,7 @@
     });
 
     roomCodeInput.addEventListener("input", () => {
-      roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 6);
+      roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 4);
     });
 
     audio.addEventListener("ended", () => {
