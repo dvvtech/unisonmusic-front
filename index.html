@@ -129,6 +129,10 @@
       gap: 10px;
     }
 
+    .playback-controls button {
+      flex: 1;
+    }
+
     input {
       width: 100%;
       min-height: 46px;
@@ -466,7 +470,7 @@
       <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
       <audio id="audio" class="player" preload="auto" controls></audio>
 
-      <div class="row">
+      <div class="row playback-controls">
         <button id="startButton" class="warning" disabled>Начать</button>
         <button id="stopButton" class="secondary" disabled>Остановить</button>
         <button id="continueButton" class="secondary" disabled>Продолжить</button>
