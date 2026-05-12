@@ -453,6 +453,7 @@
       </div>
       <div id="roomMeta" class="meta">Комната еще не выбрана.</div>
 
+      <div id="roomContent" class="stack" hidden>
       <h2 class="section-title">Трек</h2>
       <div class="row">
         <input id="trackUrlInput" type="url" placeholder="URL музыки">
@@ -472,6 +473,7 @@
       </div>
       <div id="countdown" class="countdown">Ожидание</div>
       <div id="status" class="status">Подключаемся к SignalR...</div>
+      </div>
     </section>
 
     <aside class="panel stack">
@@ -501,6 +503,7 @@
     const joinRoomButton = document.getElementById("joinRoomButton");
     const roomCodeInput = document.getElementById("roomCodeInput");
     const roomEntry = document.getElementById("roomEntry");
+    const roomContent = document.getElementById("roomContent");
     const leaveRoomButton = document.getElementById("leaveRoomButton");
     const roomCode = document.getElementById("roomCode");
     const roomMeta = document.getElementById("roomMeta");
@@ -550,6 +553,7 @@
       const action = isRoomCreator ? "создали" : "вошли в";
       setStatus(`Вы ${action} комнату ${snapshot.roomCode}.`);
       roomEntry.hidden = true;
+      roomContent.hidden = false;
       leaveRoomButton.hidden = false;
     });
 
@@ -884,6 +888,7 @@
       currentRoom = null;
       isRoomCreator = false;
       roomEntry.hidden = false;
+      roomContent.hidden = true;
       leaveRoomButton.hidden = true;
       roomCode.textContent = "---";
       roomMeta.textContent = "Комната еще не выбрана.";
