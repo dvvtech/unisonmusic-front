@@ -120,6 +120,10 @@
       gap: 14px;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .row {
       display: flex;
       gap: 10px;
@@ -306,6 +310,7 @@
       font-weight: 900;
       letter-spacing: 0.12em;
       color: #e0f2fe;
+      flex: 1;
     }
 
     .meta {
@@ -428,19 +433,24 @@
     <section class="panel brand">
       <div>
         <h1>Unisonmusic</h1>
-        <p>Синхронный старт одного трека на нескольких устройствах через комнату.</p>
+        <p>Синхронный старт одного трека на нескольких устройствах.</p>
       </div>
       <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
     </section>
 
     <section class="panel stack">
       <h2 class="section-title">Комната</h2>
-      <button id="createRoomButton">Создать комнату</button>
-      <div class="row">
-        <input id="roomCodeInput" inputmode="numeric" maxlength="4" placeholder="Ввести код комнаты">
-        <button id="joinRoomButton" class="secondary">Войти</button>
+      <div id="roomEntry" class="stack">
+        <button id="createRoomButton">Создать комнату</button>
+        <div class="row">
+          <input id="roomCodeInput" inputmode="numeric" maxlength="4" placeholder="Ввести код комнаты">
+          <button id="joinRoomButton" class="secondary">Войти</button>
+        </div>
       </div>
-      <div id="roomCode" class="room-code">---</div>
+      <div class="row">
+        <div id="roomCode" class="room-code">---</div>
+        <button id="leaveRoomButton" class="secondary" hidden>Выйти</button>
+      </div>
       <div id="roomMeta" class="meta">Комната еще не выбрана.</div>
 
       <h2 class="section-title">Трек</h2>
@@ -490,6 +500,8 @@
     const createRoomButton = document.getElementById("createRoomButton");
     const joinRoomButton = document.getElementById("joinRoomButton");
     const roomCodeInput = document.getElementById("roomCodeInput");
+    const roomEntry = document.getElementById("roomEntry");
+    const leaveRoomButton = document.getElementById("leaveRoomButton");
     const roomCode = document.getElementById("roomCode");
     const roomMeta = document.getElementById("roomMeta");
     const trackUrlInput = document.getElementById("trackUrlInput");
@@ -525,6 +537,7 @@
     let playbackSyncStartPositionSeconds = 0;
     let trackUploadInProgress = false;
     let trackUploadAbortController = null;
+    let isRoomCreator = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -534,7 +547,15 @@
 
     connection.on("RoomJoined", snapshot => {
       renderRoom(snapshot);
-      setStatus(`Вы вошли в комнату ${snapshot.roomCode}.`);
+      const action = isRoomCreator ? "создали" : "вошли в";
+      setStatus(`Вы ${action} комнату ${snapshot.roomCode}.`);
+      roomEntry.hidden = true;
+      leaveRoomButton.hidden = false;
+    });
+
+    connection.on("RoomLeft", () => {
+      resetRoom();
+      setStatus("Вы вышли из комнаты.");
     });
 
     connection.on("RoomUpdated", snapshot => {
@@ -582,10 +603,12 @@
     });
 
     createRoomButton.addEventListener("click", async () => {
+      isRoomCreator = true;
       await invokeHub("CreateRoom", await getClientDeviceInfo());
     });
 
     joinRoomButton.addEventListener("click", async () => {
+      isRoomCreator = false;
       const code = roomCodeInput.value.trim();
       if (!/^\d{3,4}$/.test(code)) {
         setStatus("Введите 3- или 4-значный код комнаты.", true);
@@ -593,6 +616,10 @@
       }
 
       await invokeHub("JoinRoom", code, await getClientDeviceInfo());
+    });
+
+    leaveRoomButton.addEventListener("click", async () => {
+      await invokeHub("LeaveRoom");
     });
 
     setTrackButton.addEventListener("click", async () => {
@@ -851,6 +878,22 @@
       }
 
       setControlsEnabled(true);
+    }
+
+    function resetRoom() {
+      currentRoom = null;
+      isRoomCreator = false;
+      roomEntry.hidden = false;
+      leaveRoomButton.hidden = true;
+      roomCode.textContent = "---";
+      roomMeta.textContent = "Комната еще не выбрана.";
+      participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
+      trackTitle.textContent = "Трек еще не выбран.";
+      audio.src = "";
+      playbackActive = false;
+      pausedPositionSeconds = null;
+      countdown.textContent = "Ожидание";
+      setControlsEnabled(false);
     }
 
     function isValidUrl(str) {
