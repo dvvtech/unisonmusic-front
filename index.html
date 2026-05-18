@@ -29,7 +29,8 @@
       min-height: 100vh;
       margin: 0;
       display: grid;
-      place-items: center;
+      align-items: start;
+      justify-items: start;
       padding: 24px;
       background:
         radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.28), transparent 30%),
@@ -39,7 +40,8 @@
     }
 
     button,
-    input {
+    input,
+    select {
       font: inherit;
     }
 
@@ -66,13 +68,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 18px 22px;
+      padding: 14px 18px;
     }
 
     .brand h1 {
       margin: 0;
-      font-size: clamp(30px, 5vw, 56px);
-      line-height: 0.95;
+      font-size: clamp(22px, 3vw, 30px);
+      line-height: 1;
       letter-spacing: 0;
     }
 
@@ -81,6 +83,20 @@
       margin: 8px 0 0;
       color: var(--muted);
       line-height: 1.5;
+    }
+
+    .brand-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .auth-state {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+      white-space: nowrap;
     }
 
     .connection {
@@ -133,7 +149,8 @@
       flex: 1;
     }
 
-    input {
+    input,
+    select {
       width: 100%;
       min-height: 46px;
       border: 1px solid var(--line);
@@ -145,7 +162,12 @@
       transition: border-color 160ms ease, background 160ms ease;
     }
 
-    input:focus {
+    select {
+      appearance: none;
+    }
+
+    input:focus,
+    select:focus {
       border-color: rgba(96, 165, 250, 0.85);
       background: rgba(15, 23, 42, 0.74);
     }
@@ -343,6 +365,37 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
+    .playlists,
+    .track-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .playlist,
+    .track-item {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.42);
+    }
+
+    .playlist-title,
+    .track-item-title {
+      overflow-wrap: anywhere;
+      font-weight: 700;
+    }
+
+    .track-item-controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
     .player {
       width: 100%;
       min-height: 46px;
@@ -414,8 +467,23 @@
         flex-direction: column;
       }
 
+      .brand-actions {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+        margin-left: 0;
+      }
+
+      .auth-state {
+        text-align: left;
+      }
+
       .connection {
         text-align: left;
+      }
+
+      .track-item-controls {
+        grid-template-columns: 1fr;
       }
 
       .row {
@@ -439,7 +507,11 @@
         <h1>Unisonmusic</h1>
         <p>Синхронный старт одного трека на нескольких устройствах.</p>
       </div>
-      <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
+      <div class="brand-actions">
+        <button id="loginButton" class="secondary" type="button">Sign in with Google</button>
+        <div id="authState" class="auth-state">Гость</div>
+        <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
+      </div>
     </section>
 
     <section class="panel stack">
@@ -483,6 +555,17 @@
     <aside class="panel stack">
       <h2 class="section-title">Участники</h2>
       <ul id="participants" class="participants"></ul>
+      <div id="libraryPanel" class="stack" hidden>
+        <h2 class="section-title">Плейлисты</h2>
+        <div class="row">
+          <input id="playlistNameInput" maxlength="128" placeholder="Название плейлиста">
+          <button id="createPlaylistButton" class="secondary" type="button">Создать</button>
+        </div>
+        <ul id="playlists" class="playlists"></ul>
+
+        <h2 class="section-title">Скачанные треки</h2>
+        <ul id="downloadedTracks" class="track-list"></ul>
+      </div>
     </aside>
   </main>
 
@@ -498,11 +581,17 @@
   <script>
     //const hubUrl = "http://192.168.0.47:5113/hubs/music";
 
-    const hubUrl = "https://api.unisonmusic.ru/hubs/music";
-    const uploadFromUrlEndpoint = "https://api.unisonmusic.ru/file/upload-from-url";
+    const apiBaseUrl = "https://api.unisonmusic.ru";
+    const hubUrl = `${apiBaseUrl}/hubs/music`;
+    const uploadFromUrlEndpoint = `${apiBaseUrl}/file/upload-from-url`;
+    const googleAuthEndpoint = `${apiBaseUrl}/identity/google-auth`;
+    const playlistsEndpoint = `${apiBaseUrl}/playlists`;
+    const downloadedTracksEndpoint = `${apiBaseUrl}/tracks/downloaded`;
 
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
+    const loginButton = document.getElementById("loginButton");
+    const authState = document.getElementById("authState");
     const createRoomButton = document.getElementById("createRoomButton");
     const joinRoomButton = document.getElementById("joinRoomButton");
     const roomCodeInput = document.getElementById("roomCodeInput");
@@ -525,6 +614,11 @@
     const appRoot = document.getElementById("appRoot");
     const countdown = document.getElementById("countdown");
     const audio = document.getElementById("audio");
+    const libraryPanel = document.getElementById("libraryPanel");
+    const playlistNameInput = document.getElementById("playlistNameInput");
+    const createPlaylistButton = document.getElementById("createPlaylistButton");
+    const playlists = document.getElementById("playlists");
+    const downloadedTracks = document.getElementById("downloadedTracks");
     const clockSyncIntervalMs = 30000;
     const playbackCorrectionIntervalMs = 1000;
     const softSyncThresholdSeconds = 0.04;
@@ -545,6 +639,9 @@
     let trackUploadInProgress = false;
     let trackUploadAbortController = null;
     let isRoomCreator = false;
+    let isAuthorized = false;
+    let userPlaylists = [];
+    let userDownloadedTracks = [];
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -610,6 +707,55 @@
       setStatus("SignalR соединение закрыто.", true);
     });
 
+    loginButton.addEventListener("click", async () => {
+      loginButton.disabled = true;
+
+      try {
+        const response = await fetch(googleAuthEndpoint, {
+          method: "GET",
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          throw new Error(`Не удалось начать авторизацию: ${response.status}`);
+        }
+
+        const authUrl = normalizeTextResponse(await response.text());
+        if (!authUrl) {
+          throw new Error("Сервер не вернул URL авторизации.");
+        }
+
+        window.location.href = authUrl;
+      } catch (error) {
+        loginButton.disabled = false;
+        setStatus(error.message || "Не удалось начать авторизацию через Google.", true);
+      }
+    });
+
+    createPlaylistButton.addEventListener("click", async () => {
+      const name = playlistNameInput.value.trim();
+      if (!name) {
+        setStatus("Введите название плейлиста.", true);
+        return;
+      }
+
+      try {
+        await apiFetch(playlistsEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name })
+        });
+
+        playlistNameInput.value = "";
+        await refreshAuthState();
+        setStatus(`Плейлист "${name}" создан.`);
+      } catch (error) {
+        setStatus(error.message || "Не удалось создать плейлист.", true);
+      }
+    });
+
     createRoomButton.addEventListener("click", async () => {
       isRoomCreator = true;
       await invokeHub("CreateRoom", await getClientDeviceInfo());
@@ -646,6 +792,7 @@
         const s3Url = uploadedTrack.s3Url || uploadedTrack.S3Url;
         const sourceUrl = uploadedTrack.url || uploadedTrack.Url || url;
         const title = uploadedTrack.trackTitle || uploadedTrack.TrackTitle || "";
+        const trackId = uploadedTrack.trackId || uploadedTrack.TrackId;
 
         if (!s3Url) {
           throw new Error("Сервер не вернул S3 URL трека.");
@@ -657,6 +804,10 @@
         const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl);
         if (snapshot) {
           setStatus("Трек загружен и готов к воспроизведению.");
+        }
+
+        if (isAuthorized && trackId) {
+          await refreshAuthState();
         }
       } catch (error) {
         if (error.name === "AbortError") {
@@ -738,6 +889,9 @@
     });
 
     start();
+    refreshAuthState().catch(() => {
+      renderGuestState();
+    });
 
     async function start() {
       try {
@@ -934,6 +1088,7 @@
     async function uploadTrackFromUrl(url, signal) {
       const response = await fetch(uploadFromUrlEndpoint, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -947,6 +1102,184 @@
       }
 
       return response.json();
+    }
+
+    async function refreshAuthState() {
+      try {
+        const playlistsResponse = await fetch(playlistsEndpoint, {
+          method: "GET",
+          credentials: "include"
+        });
+
+        if (playlistsResponse.status === 401) {
+          renderGuestState();
+          return;
+        }
+
+        if (!playlistsResponse.ok) {
+          throw new Error(`Не удалось загрузить плейлисты: ${playlistsResponse.status}`);
+        }
+
+        userPlaylists = await playlistsResponse.json();
+        isAuthorized = true;
+        libraryPanel.hidden = false;
+        loginButton.hidden = true;
+        authState.textContent = "Вы вошли";
+        renderPlaylists();
+        await loadDownloadedTracks();
+      } catch {
+        renderGuestState();
+      }
+    }
+
+    function renderGuestState() {
+      isAuthorized = false;
+      userPlaylists = [];
+      userDownloadedTracks = [];
+      libraryPanel.hidden = true;
+      loginButton.hidden = false;
+      loginButton.disabled = false;
+      authState.textContent = "Гость";
+    }
+
+    async function loadDownloadedTracks() {
+      const response = await fetch(downloadedTracksEndpoint, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      if (response.status === 401) {
+        renderGuestState();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить скачанные треки: ${response.status}`);
+      }
+
+      userDownloadedTracks = await response.json();
+      renderDownloadedTracks();
+    }
+
+    function renderPlaylists() {
+      playlists.innerHTML = "";
+
+      if (userPlaylists.length === 0) {
+        playlists.innerHTML = '<li class="playlist"><span class="meta">Плейлистов пока нет</span></li>';
+        return;
+      }
+
+      userPlaylists.forEach(playlist => {
+        const li = document.createElement("li");
+        const name = playlist.name || playlist.Name || "Без названия";
+        const trackCount = playlist.trackCount ?? playlist.TrackCount ?? 0;
+        li.className = "playlist";
+        li.innerHTML = `
+          <span class="playlist-title">${escapeHtml(name)}</span>
+          <span class="meta">${trackCount} трек(ов)</span>
+        `;
+        playlists.appendChild(li);
+      });
+    }
+
+    function renderDownloadedTracks() {
+      downloadedTracks.innerHTML = "";
+
+      if (userDownloadedTracks.length === 0) {
+        downloadedTracks.innerHTML = '<li class="track-item"><span class="meta">После загрузки треки появятся здесь</span></li>';
+        return;
+      }
+
+      userDownloadedTracks.forEach(track => {
+        const li = document.createElement("li");
+        const trackId = track.id || track.Id;
+        const title = track.trackTitle || track.TrackTitle || track.url || track.Url || "Без названия";
+        const select = document.createElement("select");
+        const button = document.createElement("button");
+
+        userPlaylists.forEach(playlist => {
+          const playlistId = playlist.id || playlist.Id;
+          const playlistName = playlist.name || playlist.Name || "Без названия";
+          const option = document.createElement("option");
+          option.value = playlistId;
+          option.textContent = playlistName;
+          select.appendChild(option);
+        });
+
+        select.disabled = userPlaylists.length === 0;
+        button.type = "button";
+        button.className = "secondary";
+        button.textContent = "Добавить";
+        button.disabled = userPlaylists.length === 0;
+        button.addEventListener("click", async () => {
+          await addTrackToPlaylist(trackId, select.value);
+        });
+
+        const controls = document.createElement("div");
+        controls.className = "track-item-controls";
+        controls.append(select, button);
+
+        li.className = "track-item";
+        li.innerHTML = `<span class="track-item-title">${escapeHtml(title)}</span>`;
+        li.appendChild(controls);
+        downloadedTracks.appendChild(li);
+      });
+    }
+
+    async function addTrackToPlaylist(trackId, playlistId) {
+      if (!trackId || !playlistId) {
+        setStatus("Выберите плейлист для трека.", true);
+        return;
+      }
+
+      try {
+        await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ trackId })
+        });
+
+        await refreshAuthState();
+        setStatus("Трек добавлен в плейлист.");
+      } catch (error) {
+        setStatus(error.message || "Не удалось добавить трек в плейлист.", true);
+      }
+    }
+
+    async function apiFetch(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "include",
+        ...options
+      });
+
+      if (response.status === 401) {
+        renderGuestState();
+        throw new Error("Нужно войти через Google.");
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(normalizeTextResponse(errorText) || `Ошибка запроса: ${response.status}`);
+      }
+
+      return response;
+    }
+
+    function normalizeTextResponse(value) {
+      const text = value.trim();
+
+      if (!text) {
+        return "";
+      }
+
+      try {
+        const parsed = JSON.parse(text);
+        return typeof parsed === "string" ? parsed : text;
+      } catch {
+        return text;
+      }
     }
 
     function setTrackUploadInProgress(inProgress) {
