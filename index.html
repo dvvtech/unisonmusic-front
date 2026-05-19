@@ -384,6 +384,16 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
+    .playlist {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .delete-playlist-btn {
+      min-height: 32px;
+      padding: 0 10px;
+    }
+
     .playlist[role="button"],
     .track-item.selectable {
       cursor: pointer;
@@ -1217,9 +1227,18 @@
         li.role = "button";
         li.tabIndex = 0;
         li.innerHTML = `
-          <span class="playlist-title">${escapeHtml(name)}</span>
-          <span class="meta">${trackCount} трек(ов)</span>
+          <div>
+            <span class="playlist-title">${escapeHtml(name)}</span>
+            <span class="meta">${trackCount} трек(ов)</span>
+          </div>
+          <button class="secondary icon-btn delete-playlist-btn" data-playlist-id="${playlistId}" data-playlist-name="${escapeHtml(name)}" title="Удалить плейлист" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         `;
+        li.querySelector(".delete-playlist-btn").addEventListener("click", event => {
+          event.stopPropagation();
+          deletePlaylist(playlistId, name);
+        });
         li.addEventListener("click", () => {
           selectPlaylist(playlistId, name);
         });
@@ -1404,6 +1423,29 @@
         setStatus(`"${title}" добавлен в плейлист.`);
       } catch (error) {
         setStatus(error.message || "Не удалось добавить трек в плейлист.", true);
+      }
+    }
+
+    async function deletePlaylist(playlistId, name) {
+      if (!confirm(`Удалить плейлист "${name}"?`)) {
+        return;
+      }
+
+      try {
+        await apiFetch(`${playlistsEndpoint}/${playlistId}`, {
+          method: "DELETE"
+        });
+
+        if (String(selectedPlaylistId) === String(playlistId)) {
+          selectedPlaylistId = null;
+          selectedPlaylistTracks = [];
+          playlistTracksTitle.textContent = "Треки плейлиста";
+        }
+
+        await refreshAuthState();
+        setStatus(`Плейлист "${name}" удален.`);
+      } catch (error) {
+        setStatus(error.message || "Не удалось удалить плейлист.", true);
       }
     }
 
