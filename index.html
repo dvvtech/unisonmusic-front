@@ -384,6 +384,19 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
+    .playlist[role="button"],
+    .track-item.selectable {
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .playlist[role="button"]:hover,
+    .track-item.selectable:hover,
+    .playlist.is-active {
+      border-color: rgba(96, 165, 250, 0.85);
+      background: rgba(96, 165, 250, 0.14);
+    }
+
     .playlist-title,
     .track-item-title {
       overflow-wrap: anywhere;
@@ -563,6 +576,9 @@
         </div>
         <ul id="playlists" class="playlists"></ul>
 
+        <h2 id="playlistTracksTitle" class="section-title">Треки плейлиста</h2>
+        <ul id="playlistTracks" class="track-list"></ul>
+
         <h2 class="section-title">Скачанные треки</h2>
         <ul id="downloadedTracks" class="track-list"></ul>
       </div>
@@ -618,6 +634,8 @@
     const playlistNameInput = document.getElementById("playlistNameInput");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
+    const playlistTracksTitle = document.getElementById("playlistTracksTitle");
+    const playlistTracks = document.getElementById("playlistTracks");
     const downloadedTracks = document.getElementById("downloadedTracks");
     const clockSyncIntervalMs = 30000;
     const playbackCorrectionIntervalMs = 1000;
@@ -641,6 +659,8 @@
     let isRoomCreator = false;
     let isAuthorized = false;
     let userPlaylists = [];
+    let selectedPlaylistId = null;
+    let selectedPlaylistTracks = [];
     let userDownloadedTracks = [];
 
     const connection = new signalR.HubConnectionBuilder()
@@ -1126,6 +1146,7 @@
         loginButton.hidden = true;
         authState.textContent = "Вы вошли";
         renderPlaylists();
+        await refreshSelectedPlaylistTracks();
         await loadDownloadedTracks();
       } catch {
         renderGuestState();
@@ -1135,8 +1156,12 @@
     function renderGuestState() {
       isAuthorized = false;
       userPlaylists = [];
+      selectedPlaylistId = null;
+      selectedPlaylistTracks = [];
       userDownloadedTracks = [];
       libraryPanel.hidden = true;
+      playlistTracksTitle.textContent = "Треки плейлиста";
+      playlistTracks.innerHTML = "";
       loginButton.hidden = false;
       loginButton.disabled = false;
       authState.textContent = "Гость";
@@ -1166,19 +1191,120 @@
 
       if (userPlaylists.length === 0) {
         playlists.innerHTML = '<li class="playlist"><span class="meta">Плейлистов пока нет</span></li>';
+        selectedPlaylistId = null;
+        renderPlaylistTracks();
         return;
       }
 
       userPlaylists.forEach(playlist => {
         const li = document.createElement("li");
+        const playlistId = playlist.id || playlist.Id;
         const name = playlist.name || playlist.Name || "Без названия";
         const trackCount = playlist.trackCount ?? playlist.TrackCount ?? 0;
         li.className = "playlist";
+        li.classList.toggle("is-active", String(playlistId) === String(selectedPlaylistId));
+        li.role = "button";
+        li.tabIndex = 0;
         li.innerHTML = `
           <span class="playlist-title">${escapeHtml(name)}</span>
           <span class="meta">${trackCount} трек(ов)</span>
         `;
+        li.addEventListener("click", () => {
+          selectPlaylist(playlistId, name);
+        });
+        li.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectPlaylist(playlistId, name);
+          }
+        });
         playlists.appendChild(li);
+      });
+
+      if (!userPlaylists.some(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId))) {
+        selectedPlaylistId = null;
+        selectedPlaylistTracks = [];
+        renderPlaylistTracks();
+      }
+    }
+
+    async function selectPlaylist(playlistId, playlistName) {
+      selectedPlaylistId = playlistId;
+      playlistTracksTitle.textContent = playlistName;
+      renderPlaylists();
+
+      try {
+        await loadPlaylistTracks(playlistId);
+      } catch (error) {
+        setStatus(error.message || "Не удалось загрузить треки плейлиста.", true);
+      }
+    }
+
+    async function refreshSelectedPlaylistTracks() {
+      if (!selectedPlaylistId) {
+        renderPlaylistTracks();
+        return;
+      }
+
+      const selectedPlaylist = userPlaylists.find(
+        playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId));
+
+      if (!selectedPlaylist) {
+        selectedPlaylistId = null;
+        selectedPlaylistTracks = [];
+        renderPlaylistTracks();
+        return;
+      }
+
+      playlistTracksTitle.textContent = selectedPlaylist.name || selectedPlaylist.Name || "Треки плейлиста";
+      await loadPlaylistTracks(selectedPlaylistId);
+    }
+
+    async function loadPlaylistTracks(playlistId) {
+      const response = await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
+        method: "GET"
+      });
+
+      selectedPlaylistTracks = await response.json();
+      renderPlaylistTracks();
+    }
+
+    function renderPlaylistTracks() {
+      playlistTracks.innerHTML = "";
+
+      if (!selectedPlaylistId) {
+        playlistTracksTitle.textContent = "Треки плейлиста";
+        playlistTracks.innerHTML = '<li class="track-item"><span class="meta">Выберите плейлист</span></li>';
+        return;
+      }
+
+      if (selectedPlaylistTracks.length === 0) {
+        playlistTracks.innerHTML = '<li class="track-item"><span class="meta">В плейлисте пока нет треков</span></li>';
+        return;
+      }
+
+      selectedPlaylistTracks.forEach(track => {
+        const li = document.createElement("li");
+        const title = track.trackTitle || track.TrackTitle || track.url || track.Url || "Без названия";
+        const url = track.url || track.Url || "";
+
+        li.className = "track-item selectable";
+        li.role = "button";
+        li.tabIndex = 0;
+        li.innerHTML = `
+          <span class="track-item-title">${escapeHtml(title)}</span>
+          <span class="meta">${escapeHtml(url)}</span>
+        `;
+        li.addEventListener("click", () => {
+          selectPlaylistTrack(track);
+        });
+        li.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectPlaylistTrack(track);
+          }
+        });
+        playlistTracks.appendChild(li);
       });
     }
 
@@ -1226,6 +1352,20 @@
       });
     }
 
+    function selectPlaylistTrack(track) {
+      const url = track.url || track.Url || "";
+      const title = track.trackTitle || track.TrackTitle || "Трек";
+
+      if (!url) {
+        setStatus("У выбранного трека нет исходного URL.", true);
+        return;
+      }
+
+      trackUrlInput.value = url;
+      trackUrlInput.dispatchEvent(new Event("input"));
+      setStatus(`URL трека "${title}" подставлен.`);
+    }
+
     async function addTrackToPlaylist(trackId, playlistId) {
       if (!trackId || !playlistId) {
         setStatus("Выберите плейлист для трека.", true);
@@ -1241,6 +1381,7 @@
           body: JSON.stringify({ trackId })
         });
 
+        selectedPlaylistId = playlistId;
         await refreshAuthState();
         setStatus("Трек добавлен в плейлист.");
       } catch (error) {
