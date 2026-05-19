@@ -854,7 +854,7 @@
         setCurrentLibraryTrack(trackId, title || sourceUrl);
         prepareAudio(s3Url, title);
 
-        const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl);
+        const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
         if (snapshot) {
           setStatus("Трек загружен и готов к воспроизведению.");
         }
@@ -1080,6 +1080,12 @@
       trackUrlInput.value = snapshot.trackSourceUrl || trackUrlInput.value;
       renderTrackTitle(snapshot.trackTitle);
       roomMeta.textContent = `${snapshot.users.length} участник(ов).`;
+
+      const snapshotTrackId = snapshot.trackId ?? snapshot.TrackId ?? null;
+      const snapshotTrackTitle = snapshot.trackTitle || snapshot.TrackTitle || "";
+      if (snapshotTrackId) {
+        setCurrentLibraryTrack(snapshotTrackId, snapshotTrackTitle);
+      }
 
       if (snapshot.trackUrl && audio.src !== snapshot.trackUrl) {
         prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
