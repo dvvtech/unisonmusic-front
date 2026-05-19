@@ -1306,18 +1306,26 @@
 
     function selectPlaylistTrack(track) {
       const trackId = track.id || track.Id;
-      const url = track.url || track.Url || "";
+      const sourceUrl = track.url || track.Url || "";
+      const s3Url = track.s3Url || track.S3Url || "";
       const title = track.trackTitle || track.TrackTitle || "Трек";
 
-      if (!url) {
+      if (!sourceUrl) {
         setStatus("У выбранного трека нет исходного URL.", true);
         return;
       }
 
-      trackUrlInput.value = url;
+      trackUrlInput.value = sourceUrl;
       setCurrentLibraryTrack(trackId, title);
-      updateSetTrackButton();
-      setStatus(`URL трека "${title}" подставлен.`);
+
+      if (s3Url) {
+        prepareAudio(s3Url, title);
+        invokeHub("SetTrack", s3Url, title, sourceUrl);
+        setStatus(`Трек "${title}" загружен из плейлиста.`);
+      } else {
+        updateSetTrackButton();
+        setStatus(`URL трека "${title}" подставлен. Нажмите «Загрузить».`);
+      }
     }
 
     function setCurrentLibraryTrack(trackId, title) {
