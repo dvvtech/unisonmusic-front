@@ -553,6 +553,10 @@
         <button id="setTrackButton" class="secondary" disabled>Загрузить</button>
       </div>
       <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
+      <div id="trackPlaylistControls" class="row" hidden>
+        <select id="trackPlaylistSelect" aria-label="Плейлист для трека"></select>
+        <button id="addCurrentTrackToPlaylistButton" class="secondary" type="button">Добавить в плейлист</button>
+      </div>
       <audio id="audio" class="player" preload="auto" controls></audio>
 
       <div class="row playback-controls">
@@ -578,9 +582,6 @@
 
         <h2 id="playlistTracksTitle" class="section-title">Треки плейлиста</h2>
         <ul id="playlistTracks" class="track-list"></ul>
-
-        <h2 class="section-title">Скачанные треки</h2>
-        <ul id="downloadedTracks" class="track-list"></ul>
       </div>
     </aside>
   </main>
@@ -602,7 +603,6 @@
     const uploadFromUrlEndpoint = `${apiBaseUrl}/file/upload-from-url`;
     const googleAuthEndpoint = `${apiBaseUrl}/identity/google-auth`;
     const playlistsEndpoint = `${apiBaseUrl}/playlists`;
-    const downloadedTracksEndpoint = `${apiBaseUrl}/tracks/downloaded`;
 
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
@@ -625,6 +625,9 @@
     const participants = document.getElementById("participants");
     const statusBox = document.getElementById("status");
     const trackTitle = document.getElementById("trackTitle");
+    const trackPlaylistControls = document.getElementById("trackPlaylistControls");
+    const trackPlaylistSelect = document.getElementById("trackPlaylistSelect");
+    const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
     const uploadOverlay = document.getElementById("uploadOverlay");
     const cancelUploadButton = document.getElementById("cancelUploadButton");
     const appRoot = document.getElementById("appRoot");
@@ -636,7 +639,6 @@
     const playlists = document.getElementById("playlists");
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
     const playlistTracks = document.getElementById("playlistTracks");
-    const downloadedTracks = document.getElementById("downloadedTracks");
     const clockSyncIntervalMs = 30000;
     const playbackCorrectionIntervalMs = 1000;
     const softSyncThresholdSeconds = 0.04;
@@ -661,7 +663,8 @@
     let userPlaylists = [];
     let selectedPlaylistId = null;
     let selectedPlaylistTracks = [];
-    let userDownloadedTracks = [];
+    let currentLibraryTrackId = null;
+    let currentLibraryTrackTitle = "";
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -776,6 +779,10 @@
       }
     });
 
+    addCurrentTrackToPlaylistButton.addEventListener("click", async () => {
+      await addTrackToPlaylist(currentLibraryTrackId, trackPlaylistSelect.value);
+    });
+
     createRoomButton.addEventListener("click", async () => {
       isRoomCreator = true;
       await invokeHub("CreateRoom", await getClientDeviceInfo());
@@ -819,6 +826,7 @@
         }
 
         trackUrlInput.value = sourceUrl;
+        setCurrentLibraryTrack(trackId, title || sourceUrl);
         prepareAudio(s3Url, title);
 
         const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl);
@@ -899,6 +907,11 @@
 
     roomCodeInput.addEventListener("input", () => {
       roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 4);
+    });
+
+    trackUrlInput.addEventListener("input", () => {
+      clearCurrentLibraryTrack();
+      updateSetTrackButton();
     });
 
     audio.addEventListener("ended", () => {
@@ -1103,8 +1116,6 @@
       continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
 
-    trackUrlInput.addEventListener("input", updateSetTrackButton);
-
     async function uploadTrackFromUrl(url, signal) {
       const response = await fetch(uploadFromUrlEndpoint, {
         method: "POST",
@@ -1146,8 +1157,8 @@
         loginButton.hidden = true;
         authState.textContent = "Вы вошли";
         renderPlaylists();
+        renderTrackPlaylistControls();
         await refreshSelectedPlaylistTracks();
-        await loadDownloadedTracks();
       } catch {
         renderGuestState();
       }
@@ -1158,32 +1169,15 @@
       userPlaylists = [];
       selectedPlaylistId = null;
       selectedPlaylistTracks = [];
-      userDownloadedTracks = [];
+      currentLibraryTrackId = null;
+      currentLibraryTrackTitle = "";
       libraryPanel.hidden = true;
       playlistTracksTitle.textContent = "Треки плейлиста";
       playlistTracks.innerHTML = "";
+      renderTrackPlaylistControls();
       loginButton.hidden = false;
       loginButton.disabled = false;
       authState.textContent = "Гость";
-    }
-
-    async function loadDownloadedTracks() {
-      const response = await fetch(downloadedTracksEndpoint, {
-        method: "GET",
-        credentials: "include"
-      });
-
-      if (response.status === 401) {
-        renderGuestState();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Не удалось загрузить скачанные треки: ${response.status}`);
-      }
-
-      userDownloadedTracks = await response.json();
-      renderDownloadedTracks();
     }
 
     function renderPlaylists() {
@@ -1220,6 +1214,8 @@
         });
         playlists.appendChild(li);
       });
+
+      renderTrackPlaylistControls();
 
       if (!userPlaylists.some(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId))) {
         selectedPlaylistId = null;
@@ -1308,51 +1304,8 @@
       });
     }
 
-    function renderDownloadedTracks() {
-      downloadedTracks.innerHTML = "";
-
-      if (userDownloadedTracks.length === 0) {
-        downloadedTracks.innerHTML = '<li class="track-item"><span class="meta">После загрузки треки появятся здесь</span></li>';
-        return;
-      }
-
-      userDownloadedTracks.forEach(track => {
-        const li = document.createElement("li");
-        const trackId = track.id || track.Id;
-        const title = track.trackTitle || track.TrackTitle || track.url || track.Url || "Без названия";
-        const select = document.createElement("select");
-        const button = document.createElement("button");
-
-        userPlaylists.forEach(playlist => {
-          const playlistId = playlist.id || playlist.Id;
-          const playlistName = playlist.name || playlist.Name || "Без названия";
-          const option = document.createElement("option");
-          option.value = playlistId;
-          option.textContent = playlistName;
-          select.appendChild(option);
-        });
-
-        select.disabled = userPlaylists.length === 0;
-        button.type = "button";
-        button.className = "secondary";
-        button.textContent = "Добавить";
-        button.disabled = userPlaylists.length === 0;
-        button.addEventListener("click", async () => {
-          await addTrackToPlaylist(trackId, select.value);
-        });
-
-        const controls = document.createElement("div");
-        controls.className = "track-item-controls";
-        controls.append(select, button);
-
-        li.className = "track-item";
-        li.innerHTML = `<span class="track-item-title">${escapeHtml(title)}</span>`;
-        li.appendChild(controls);
-        downloadedTracks.appendChild(li);
-      });
-    }
-
     function selectPlaylistTrack(track) {
+      const trackId = track.id || track.Id;
       const url = track.url || track.Url || "";
       const title = track.trackTitle || track.TrackTitle || "Трек";
 
@@ -1362,8 +1315,48 @@
       }
 
       trackUrlInput.value = url;
-      trackUrlInput.dispatchEvent(new Event("input"));
+      setCurrentLibraryTrack(trackId, title);
+      updateSetTrackButton();
       setStatus(`URL трека "${title}" подставлен.`);
+    }
+
+    function setCurrentLibraryTrack(trackId, title) {
+      currentLibraryTrackId = trackId || null;
+      currentLibraryTrackTitle = title || "";
+      renderTrackPlaylistControls();
+    }
+
+    function clearCurrentLibraryTrack() {
+      currentLibraryTrackId = null;
+      currentLibraryTrackTitle = "";
+      renderTrackPlaylistControls();
+    }
+
+    function renderTrackPlaylistControls() {
+      const canAssign = isAuthorized && currentLibraryTrackId && userPlaylists.length > 0;
+      trackPlaylistControls.hidden = !canAssign;
+      addCurrentTrackToPlaylistButton.disabled = !canAssign;
+
+      if (!canAssign) {
+        trackPlaylistSelect.innerHTML = "";
+        return;
+      }
+
+      const previousValue = trackPlaylistSelect.value || selectedPlaylistId;
+      trackPlaylistSelect.innerHTML = "";
+
+      userPlaylists.forEach(playlist => {
+        const playlistId = playlist.id || playlist.Id;
+        const playlistName = playlist.name || playlist.Name || "Без названия";
+        const option = document.createElement("option");
+        option.value = playlistId;
+        option.textContent = playlistName;
+        trackPlaylistSelect.appendChild(option);
+      });
+
+      if (previousValue && [...trackPlaylistSelect.options].some(option => String(option.value) === String(previousValue))) {
+        trackPlaylistSelect.value = previousValue;
+      }
     }
 
     async function addTrackToPlaylist(trackId, playlistId) {
@@ -1383,7 +1376,8 @@
 
         selectedPlaylistId = playlistId;
         await refreshAuthState();
-        setStatus("Трек добавлен в плейлист.");
+        const title = currentLibraryTrackTitle || "Трек";
+        setStatus(`"${title}" добавлен в плейлист.`);
       } catch (error) {
         setStatus(error.message || "Не удалось добавить трек в плейлист.", true);
       }
