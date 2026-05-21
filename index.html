@@ -678,6 +678,7 @@
     let selectedPlaylistTracks = [];
     let currentLibraryTrackId = null;
     let currentLibraryTrackTitle = "";
+    let audioBuffered = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -946,6 +947,26 @@
       setControlsEnabled(Boolean(currentRoom));
     });
 
+    audio.addEventListener("canplaythrough", () => {
+      audioBuffered = true;
+      countdown.textContent = "Готов";
+      setControlsEnabled(Boolean(currentRoom));
+    });
+
+    audio.addEventListener("waiting", () => {
+      audioBuffered = false;
+      if (!playbackActive) {
+        countdown.textContent = "Буферизация...";
+      }
+      setControlsEnabled(Boolean(currentRoom));
+    });
+
+    audio.addEventListener("error", () => {
+      audioBuffered = false;
+      countdown.textContent = "Ошибка";
+      setControlsEnabled(Boolean(currentRoom));
+    });
+
     start();
     refreshAuthState().catch(() => {
       renderGuestState();
@@ -1042,7 +1063,7 @@
       const samples = [];
 
       try {
-        for (let i = 0; i < 5; i += 1) {
+        for (let i = 0; i < 3; i += 1) {
           const sentAt = Date.now();
           const serverTime = await connection.invoke("GetServerTime");
           const receivedAt = Date.now();
@@ -1117,6 +1138,7 @@
       participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
       trackTitle.textContent = "Трек еще не выбран.";
       audio.src = "";
+      audioBuffered = false;
       playbackActive = false;
       pausedPositionSeconds = null;
       countdown.textContent = "Ожидание";
@@ -1140,11 +1162,12 @@
 
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
+      const canPlay = audioBuffered && !!audio.src;
       pasteUrlButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
       updateSetTrackButton();
-      startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
+      startButton.disabled = !connected || !joinedRoom || !canPlay || playbackActive;
       stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
-      continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
+      continueButton.disabled = !connected || !joinedRoom || !canPlay || pausedPositionSeconds === null || playbackActive;
     }
 
     async function uploadTrackFromUrl(url, signal) {
@@ -1509,6 +1532,8 @@
         return;
       }
 
+      audioBuffered = false;
+      countdown.textContent = "Буферизация...";
       audio.src = url;
       audio.preload = "auto";
       audio.load();
