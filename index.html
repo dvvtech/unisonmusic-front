@@ -384,6 +384,19 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
+    .participant-state {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .participant-state.ready {
+      color: var(--green);
+    }
+
+    .participant-state.buffering {
+      color: var(--yellow);
+    }
+
     .playlist {
       grid-template-columns: 1fr auto;
       align-items: center;
@@ -706,7 +719,7 @@
 
     connection.on("UserReadyUpdate", snapshot => {
       renderRoom(snapshot);
-      setStatus(snapshot.allReady ? "Сервер назначает старт..." : "Комната обновлена.");
+      setStatus(snapshot.allReady ? "Все готовы, старт..." : "Ожидание готовности участников...");
     });
 
     connection.on("TrackUpdated", snapshot => {
@@ -859,6 +872,7 @@
         if (snapshot) {
           setStatus("Трек загружен и готов к воспроизведению.");
         }
+        tryAutoReady();
 
         if (isAuthorized && trackId) {
           await refreshAuthState();
@@ -951,6 +965,7 @@
       audioBuffered = true;
       countdown.textContent = "Готов";
       setControlsEnabled(Boolean(currentRoom));
+      tryAutoReady();
     });
 
     audio.addEventListener("waiting", () => {
@@ -1116,7 +1131,9 @@
       snapshot.users.forEach(user => {
         const li = document.createElement("li");
         li.className = "participant";
-        li.innerHTML = `<span>${escapeHtml(user.name)}</span>`;
+        const stateClass = user.isReady ? "ready" : "buffering";
+        const stateText = user.isReady ? "Готов" : "Загрузка";
+        li.innerHTML = `<span>${escapeHtml(user.name)}</span><span class="participant-state ${stateClass}">${stateText}</span>`;
         participants.appendChild(li);
       });
 
@@ -1368,7 +1385,7 @@
       });
     }
 
-    function selectPlaylistTrack(track) {
+    async function selectPlaylistTrack(track) {
       const trackId = track.id || track.Id;
       const sourceUrl = track.url || track.Url || "";
       const s3Url = track.s3Url || track.S3Url || "";
@@ -1384,8 +1401,9 @@
 
       if (s3Url) {
         prepareAudio(s3Url, title);
-        invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
+        await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
         setStatus(`Трек "${title}" загружен из плейлиста.`);
+        tryAutoReady();
       } else {
         updateSetTrackButton();
         setStatus(`URL трека "${title}" подставлен. Нажмите «Загрузить».`);
@@ -1709,6 +1727,13 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    async function tryAutoReady() {
+      if (!currentRoom || playbackActive || !audioBuffered) return;
+      try {
+        await connection.invoke("SetReady");
+      } catch {}
     }
   </script>
 </body>
