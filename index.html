@@ -384,19 +384,6 @@
       background: rgba(15, 23, 42, 0.42);
     }
 
-    .participant-state {
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .participant-state.ready {
-      color: var(--green);
-    }
-
-    .participant-state.buffering {
-      color: var(--yellow);
-    }
-
     .playlist {
       grid-template-columns: 1fr auto;
       align-items: center;
@@ -691,7 +678,6 @@
     let selectedPlaylistTracks = [];
     let currentLibraryTrackId = null;
     let currentLibraryTrackTitle = "";
-    let audioBuffered = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
@@ -719,7 +705,7 @@
 
     connection.on("UserReadyUpdate", snapshot => {
       renderRoom(snapshot);
-      setStatus(snapshot.allReady ? "Все готовы, старт..." : "Ожидание готовности участников...");
+      setStatus(snapshot.allReady ? "Сервер назначает старт..." : "Комната обновлена.");
     });
 
     connection.on("TrackUpdated", snapshot => {
@@ -872,7 +858,6 @@
         if (snapshot) {
           setStatus("Трек загружен и готов к воспроизведению.");
         }
-        tryAutoReady();
 
         if (isAuthorized && trackId) {
           await refreshAuthState();
@@ -958,27 +943,6 @@
       stopPlaybackCorrection();
       playbackActive = false;
       pausedPositionSeconds = null;
-      setControlsEnabled(Boolean(currentRoom));
-    });
-
-    audio.addEventListener("canplaythrough", () => {
-      audioBuffered = true;
-      countdown.textContent = "Готов";
-      setControlsEnabled(Boolean(currentRoom));
-      tryAutoReady();
-    });
-
-    audio.addEventListener("waiting", () => {
-      audioBuffered = false;
-      if (!playbackActive) {
-        countdown.textContent = "Буферизация...";
-      }
-      setControlsEnabled(Boolean(currentRoom));
-    });
-
-    audio.addEventListener("error", () => {
-      audioBuffered = false;
-      countdown.textContent = "Ошибка";
       setControlsEnabled(Boolean(currentRoom));
     });
 
@@ -1078,7 +1042,7 @@
       const samples = [];
 
       try {
-        for (let i = 0; i < 3; i += 1) {
+        for (let i = 0; i < 5; i += 1) {
           const sentAt = Date.now();
           const serverTime = await connection.invoke("GetServerTime");
           const receivedAt = Date.now();
@@ -1131,9 +1095,7 @@
       snapshot.users.forEach(user => {
         const li = document.createElement("li");
         li.className = "participant";
-        const stateClass = user.isReady ? "ready" : "buffering";
-        const stateText = user.isReady ? "Готов" : "Загрузка";
-        li.innerHTML = `<span>${escapeHtml(user.name)}</span><span class="participant-state ${stateClass}">${stateText}</span>`;
+        li.innerHTML = `<span>${escapeHtml(user.name)}</span>`;
         participants.appendChild(li);
       });
 
@@ -1155,7 +1117,6 @@
       participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
       trackTitle.textContent = "Трек еще не выбран.";
       audio.src = "";
-      audioBuffered = false;
       playbackActive = false;
       pausedPositionSeconds = null;
       countdown.textContent = "Ожидание";
@@ -1179,12 +1140,11 @@
 
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
-      const canPlay = audioBuffered && !!audio.src;
       pasteUrlButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
       updateSetTrackButton();
-      startButton.disabled = !connected || !joinedRoom || !canPlay || playbackActive;
+      startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
       stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
-      continueButton.disabled = !connected || !joinedRoom || !canPlay || pausedPositionSeconds === null || playbackActive;
+      continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
     }
 
     async function uploadTrackFromUrl(url, signal) {
@@ -1385,7 +1345,7 @@
       });
     }
 
-    async function selectPlaylistTrack(track) {
+    function selectPlaylistTrack(track) {
       const trackId = track.id || track.Id;
       const sourceUrl = track.url || track.Url || "";
       const s3Url = track.s3Url || track.S3Url || "";
@@ -1401,9 +1361,8 @@
 
       if (s3Url) {
         prepareAudio(s3Url, title);
-        await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
+        invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
         setStatus(`Трек "${title}" загружен из плейлиста.`);
-        tryAutoReady();
       } else {
         updateSetTrackButton();
         setStatus(`URL трека "${title}" подставлен. Нажмите «Загрузить».`);
@@ -1550,8 +1509,6 @@
         return;
       }
 
-      audioBuffered = false;
-      countdown.textContent = "Буферизация...";
       audio.src = url;
       audio.preload = "auto";
       audio.load();
@@ -1727,13 +1684,6 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
-    }
-
-    async function tryAutoReady() {
-      if (!currentRoom || playbackActive || !audioBuffered) return;
-      try {
-        await connection.invoke("SetReady");
-      } catch {}
     }
   </script>
 </body>
