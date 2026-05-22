@@ -653,9 +653,9 @@
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
     const playlistTracks = document.getElementById("playlistTracks");
     const clockSyncIntervalMs = 30000;
-    const playbackCorrectionIntervalMs = 250;
-    const softSyncThresholdSeconds = 0.02;
-    const hardSyncThresholdSeconds = 0.15;
+    const playbackCorrectionIntervalMs = 1000;
+    const softSyncThresholdSeconds = 0.04;
+    const hardSyncThresholdSeconds = 0.45;
     const playbackRateAdjustment = 0.02;
 
     let currentRoom = null;
@@ -714,8 +714,7 @@
       setStatus("Трек загружен у участников.");
     });
 
-    connection.on("ReceiveStartTime", async command => {
-      await quickSyncClock();
+    connection.on("ReceiveStartTime", command => {
       scheduleLocalPlayback(command.startAt, command.positionSeconds);
     });
 
@@ -1057,41 +1056,9 @@
         }
 
         samples.sort((a, b) => a.rtt - b.rtt);
-        const bestSamples = samples.slice(0, Math.min(3, samples.length));
-        bestSamples.sort((a, b) => a.offsetMs - b.offsetMs);
-        const medianIndex = Math.floor(bestSamples.length / 2);
-        clockOffsetMs = bestSamples[medianIndex]?.offsetMs ?? clockOffsetMs;
+        clockOffsetMs = samples[0]?.offsetMs ?? clockOffsetMs;
       } finally {
         clockSyncInProgress = false;
-      }
-    }
-
-    async function quickSyncClock() {
-      if (connection.state !== signalR.HubConnectionState.Connected) {
-        return;
-      }
-
-      const samples = [];
-
-      for (let i = 0; i < 3; i += 1) {
-        const sentAt = Date.now();
-        const serverTime = await connection.invoke("GetServerTime");
-        const receivedAt = Date.now();
-        const rtt = receivedAt - sentAt;
-        const serverMs = new Date(serverTime).getTime();
-
-        samples.push({
-          offsetMs: serverMs + rtt / 2 - receivedAt,
-          rtt
-        });
-      }
-
-      samples.sort((a, b) => a.rtt - b.rtt);
-      const bestSamples = samples.slice(0, Math.min(2, samples.length));
-      bestSamples.sort((a, b) => a.offsetMs - b.offsetMs);
-      const medianIndex = Math.floor(bestSamples.length / 2);
-      if (bestSamples[medianIndex] !== undefined) {
-        clockOffsetMs = bestSamples[medianIndex].offsetMs;
       }
     }
 
