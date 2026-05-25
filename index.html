@@ -99,6 +99,161 @@
       white-space: nowrap;
     }
 
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .plan-badge.basic {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .plan-badge.plus {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(251, 113, 133, 0.18));
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .upgrade-btn {
+      min-height: 32px;
+      padding: 0 12px;
+      font-size: 12px;
+      background: linear-gradient(135deg, #fbbf24, #fb7185);
+      color: #1f1306;
+      border-radius: 999px;
+    }
+
+    .upgrade-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .plan-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(2, 6, 23, 0.78);
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease;
+    }
+
+    .plan-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .plan-modal {
+      width: min(520px, 100%);
+      display: grid;
+      gap: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      padding: 28px;
+      background: rgba(15, 23, 42, 0.95);
+      box-shadow: 0 32px 100px rgba(0, 0, 0, 0.5);
+    }
+
+    .plan-modal h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .plan-modal p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .plan-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .plan-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px;
+      background: rgba(15, 23, 42, 0.5);
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .plan-card.current {
+      border-color: rgba(96, 165, 250, 0.7);
+      background: rgba(96, 165, 250, 0.1);
+    }
+
+    .plan-card.premium-card {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(251, 113, 133, 0.06));
+    }
+
+    .plan-card h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .plan-card .price {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .plan-card .price span {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .plan-card ul {
+      margin: 0;
+      padding: 0 0 0 18px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: #dbeafe;
+    }
+
+    .plan-card ul li.disabled {
+      color: var(--muted);
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+
+    .plan-card .current-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--blue);
+    }
+
+    .plan-card.premium-card .current-label {
+      color: #fbbf24;
+    }
+
+    .plan-modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
     .connection {
       min-width: 142px;
       text-align: right;
@@ -501,6 +656,10 @@
         text-align: left;
       }
 
+      .plan-cards {
+        grid-template-columns: 1fr;
+      }
+
       .connection {
         text-align: left;
       }
@@ -534,6 +693,8 @@
         <button id="loginButton" class="secondary" type="button">Sign in with Google</button>
         <button id="logoutButton" class="secondary" type="button" hidden>Выйти</button>
         <div id="authState" class="auth-state">Гость</div>
+        <span id="planBadge" class="plan-badge basic" hidden>Базовый</span>
+        <button id="upgradeButton" class="upgrade-btn" type="button" hidden>Unison+</button>
         <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
       </div>
     </section>
@@ -606,6 +767,41 @@
     </div>
   </div>
 
+  <div id="planModalOverlay" class="plan-modal-overlay" hidden>
+    <div class="plan-modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+      <h2 id="planModalTitle">Выберите план</h2>
+      <p>Расширьте возможности Unisonmusic с подпиской Unison+</p>
+      <div class="plan-cards">
+        <div id="basicPlanCard" class="plan-card current">
+          <span class="current-label">Текущий план</span>
+          <h3>Базовый</h3>
+          <div class="price">Бесплатно</div>
+          <ul>
+            <li>Синхронное воспроизведение</li>
+            <li class="disabled">Фоновое прослушивание</li>
+            <li>До 3 плейлистов</li>
+            <li>До 3 человек в комнате</li>
+          </ul>
+        </div>
+        <div id="plusPlanCard" class="plan-card premium-card">
+          <span class="current-label" hidden>Текущий план</span>
+          <h3>Unison+</h3>
+          <div class="price">199 &#8381;<span>/мес</span></div>
+          <ul>
+            <li>Синхронное воспроизведение</li>
+            <li>Фоновое прослушивание</li>
+            <li>Безлимитные плейлисты</li>
+            <li>Безлимит участников комнаты</li>
+          </ul>
+        </div>
+      </div>
+      <div class="plan-modal-actions">
+        <button id="closePlanModalButton" class="secondary" type="button">Закрыть</button>
+        <button id="payButton" class="warning" type="button">Оформить Unison+</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     //const hubUrl = "http://192.168.0.47:5113/hubs/music";
 
@@ -615,12 +811,20 @@
     const googleAuthEndpoint = `${apiBaseUrl}/identity/google-auth`;
     const logoutEndpoint = `${apiBaseUrl}/identity/auth/logout`;
     const playlistsEndpoint = `${apiBaseUrl}/playlists`;
+    const subscriptionsEndpoint = `${apiBaseUrl}/subscriptions`;
 
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
     const loginButton = document.getElementById("loginButton");
     const logoutButton = document.getElementById("logoutButton");
     const authState = document.getElementById("authState");
+    const planBadge = document.getElementById("planBadge");
+    const upgradeButton = document.getElementById("upgradeButton");
+    const planModalOverlay = document.getElementById("planModalOverlay");
+    const closePlanModalButton = document.getElementById("closePlanModalButton");
+    const payButton = document.getElementById("payButton");
+    const basicPlanCard = document.getElementById("basicPlanCard");
+    const plusPlanCard = document.getElementById("plusPlanCard");
     const createRoomButton = document.getElementById("createRoomButton");
     const joinRoomButton = document.getElementById("joinRoomButton");
     const roomCodeInput = document.getElementById("roomCodeInput");
@@ -673,6 +877,7 @@
     let trackUploadAbortController = null;
     let isRoomCreator = false;
     let isAuthorized = false;
+    let userSubscription = null;
     let userPlaylists = [];
     let selectedPlaylistId = null;
     let selectedPlaylistTracks = [];
@@ -780,10 +985,54 @@
       setStatus("Вы вышли из аккаунта.");
     });
 
+    upgradeButton.addEventListener("click", () => {
+      openPlanModal();
+    });
+
+    closePlanModalButton.addEventListener("click", () => {
+      closePlanModal();
+    });
+
+    planModalOverlay.addEventListener("click", (e) => {
+      if (e.target === planModalOverlay) {
+        closePlanModal();
+      }
+    });
+
+    payButton.addEventListener("click", async () => {
+      payButton.disabled = true;
+      payButton.textContent = "Перенаправляем...";
+
+      try {
+        const response = await apiFetch(`${subscriptionsEndpoint}/create-payment`, {
+          method: "POST"
+        });
+
+        const payment = await response.json();
+
+        if (payment.confirmationUrl) {
+          window.location.href = payment.confirmationUrl;
+        } else {
+          setStatus("Не удалось получить ссылку на оплату.", true);
+        }
+      } catch (error) {
+        setStatus(error.message || "Не удалось создать платеж.", true);
+      } finally {
+        payButton.disabled = false;
+        payButton.textContent = "Оформить Unison+";
+      }
+    });
+
     createPlaylistButton.addEventListener("click", async () => {
       const name = playlistNameInput.value.trim();
       if (!name) {
         setStatus("Введите название плейлиста.", true);
+        return;
+      }
+
+      const maxPlaylists = userSubscription?.limits?.maxPlaylists ?? 3;
+      if (maxPlaylists !== 2147483647 && userPlaylists.length >= maxPlaylists) {
+        openPlanModal();
         return;
       }
 
@@ -818,6 +1067,12 @@
       const code = roomCodeInput.value.trim();
       if (!/^\d{3,4}$/.test(code)) {
         setStatus("Введите 3- или 4-значный код комнаты.", true);
+        return;
+      }
+
+      const maxRoomMembers = userSubscription?.limits?.maxRoomMembers ?? 3;
+      if (maxRoomMembers !== 2147483647 && currentRoom && currentRoom.users.length >= maxRoomMembers) {
+        openPlanModal();
         return;
       }
 
@@ -1081,6 +1336,12 @@
       renderTrackTitle(snapshot.trackTitle);
       roomMeta.textContent = `${snapshot.users.length} участник(ов).`;
 
+      const maxRoomMembers = userSubscription?.limits?.maxRoomMembers ?? 3;
+      if (maxRoomMembers !== 2147483647 && snapshot.users.length >= maxRoomMembers && !isRoomCreator) {
+        joinRoomButton.disabled = true;
+        roomMeta.textContent = `${snapshot.users.length} участник(ов). Лимит: ${maxRoomMembers} (Unison+).`;
+      }
+
       const snapshotTrackId = snapshot.trackId ?? snapshot.TrackId ?? null;
       const snapshotTrackTitle = snapshot.trackTitle || snapshot.TrackTitle || "";
       if (snapshotTrackId) {
@@ -1188,6 +1449,9 @@
         loginButton.hidden = true;
         logoutButton.hidden = false;
         authState.textContent = "Вы вошли";
+
+        await refreshSubscriptionState();
+
         renderPlaylists();
         renderTrackPlaylistControls();
         await refreshSelectedPlaylistTracks();
@@ -1196,9 +1460,102 @@
       }
     }
 
+    async function refreshSubscriptionState() {
+      try {
+        const response = await apiFetch(subscriptionsEndpoint, {
+          method: "GET"
+        });
+
+        userSubscription = await response.json();
+        renderSubscriptionBadge();
+      } catch {
+        userSubscription = { plan: "basic", displayName: "Базовый", isActive: false, limits: { maxPlaylists: 3, maxRoomMembers: 3, backgroundPlay: false } };
+        renderSubscriptionBadge();
+      }
+    }
+
+    function renderSubscriptionBadge() {
+      const plan = userSubscription?.plan || "basic";
+      const isPlus = plan === "plus";
+
+      planBadge.textContent = isPlus ? "Unison+" : "Базовый";
+      planBadge.className = `plan-badge ${isPlus ? "plus" : "basic"}`;
+      planBadge.hidden = false;
+
+      upgradeButton.hidden = isPlus;
+      authState.textContent = isPlus ? "Вы вошли · Unison+" : "Вы вошли";
+
+      renderPlaylistCreateLimit();
+      applyBackgroundPlayRestriction();
+    }
+
+    function renderPlaylistCreateLimit() {
+      if (!userSubscription) {
+        createPlaylistButton.disabled = false;
+        return;
+      }
+
+      const maxPlaylists = userSubscription.limits?.maxPlaylists ?? 3;
+      const isAtLimit = maxPlaylists !== 2147483647 && userPlaylists.length >= maxPlaylists;
+      createPlaylistButton.disabled = isAtLimit;
+
+      if (isAtLimit) {
+        playlistNameInput.placeholder = `Лимит: ${maxPlaylists} плейлистов`;
+      } else {
+        playlistNameInput.placeholder = "Название плейлиста";
+      }
+    }
+
+    function applyBackgroundPlayRestriction() {
+      if (userSubscription?.limits?.backgroundPlay) {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      } else {
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden && playbackActive && !userSubscription?.limits?.backgroundPlay) {
+        audio.pause();
+        playbackActive = false;
+        pausedPositionSeconds = audio.currentTime;
+        setControlsEnabled(Boolean(currentRoom));
+        countdown.textContent = "Пауза (фоном)";
+        setStatus("Фоновое воспроизведение доступно в Unison+.");
+      }
+    }
+
+    function openPlanModal() {
+      const isPlus = userSubscription?.plan === "plus";
+
+      basicPlanCard.classList.toggle("current", !isPlus);
+      plusPlanCard.classList.toggle("current", isPlus);
+
+      basicPlanCard.querySelector(".current-label").hidden = isPlus;
+      plusPlanCard.querySelector(".current-label").hidden = !isPlus;
+
+      payButton.hidden = isPlus;
+      if (isPlus) {
+        payButton.style.display = "none";
+        closePlanModalButton.textContent = "Закрыть";
+      } else {
+        payButton.style.display = "";
+        closePlanModalButton.textContent = "Закрыть";
+      }
+
+      planModalOverlay.hidden = false;
+      requestAnimationFrame(() => planModalOverlay.classList.add("active"));
+    }
+
+    function closePlanModal() {
+      planModalOverlay.classList.remove("active");
+      setTimeout(() => { planModalOverlay.hidden = true; }, 200);
+    }
+
     function renderGuestState() {
       isAuthorized = false;
       userPlaylists = [];
+      userSubscription = null;
       selectedPlaylistId = null;
       selectedPlaylistTracks = [];
       currentLibraryTrackId = null;
@@ -1211,6 +1568,9 @@
       loginButton.disabled = false;
       logoutButton.hidden = true;
       authState.textContent = "Гость";
+      planBadge.hidden = true;
+      upgradeButton.hidden = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
 
     function renderPlaylists() {
