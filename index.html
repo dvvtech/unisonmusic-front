@@ -1108,6 +1108,7 @@
       try {
         await connection.start();
         updateConnectionState("Подключено", "connected");
+        setControlsEnabled(Boolean(currentRoom));
         await syncClock();
         startClockSync();
         setStatus("SignalR подключен.");
