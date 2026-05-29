@@ -8,34 +8,51 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #111827;
-      --panel: rgba(255, 255, 255, 0.1);
-      --panel-strong: rgba(255, 255, 255, 0.16);
-      --line: rgba(255, 255, 255, 0.18);
-      --text: #f8fafc;
-      --muted: #a7b0c0;
-      --green: #34d399;
-      --red: #fb7185;
-      --blue: #60a5fa;
-      --yellow: #fbbf24;
+      --bg: #151515;
+      --surface: #1f2023;
+      --surface-soft: #292b30;
+      --surface-strong: #101113;
+      --line: #3a3d43;
+      --text: #f5f3ef;
+      --muted: #b6b0a7;
+      --accent: #2fb7a3;
+      --accent-strong: #209381;
+      --danger: #d95f59;
+      --warning: #d79a2b;
+      --ok: #49ad72;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f3f1eb;
+      --surface: #ffffff;
+      --surface-soft: #e9e5dc;
+      --surface-strong: #f8f7f2;
+      --line: #d7d1c4;
+      --text: #242424;
+      --muted: #6e675d;
+      --accent: #247f73;
+      --accent-strong: #17695e;
+      --danger: #b94d49;
+      --warning: #a87316;
+      --ok: #2f8151;
+      --shadow: 0 16px 42px rgba(63, 56, 44, 0.14);
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
-      min-height: 100vh;
+      min-height: 100%;
+    }
+
+    body {
       margin: 0;
-      display: grid;
-      align-items: start;
-      justify-items: center;
-      padding: 24px;
-      background:
-        radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.28), transparent 30%),
-        radial-gradient(circle at 80% 20%, rgba(52, 211, 153, 0.18), transparent 28%),
-        linear-gradient(135deg, #0f172a 0%, #111827 52%, #18181b 100%);
+      background: var(--bg);
       color: var(--text);
     }
 
@@ -45,315 +62,21 @@
       font: inherit;
     }
 
-    .app {
-      width: min(960px, 100%);
-      display: grid;
-      grid-template-columns: 1.08fr 0.92fr;
-      gap: 18px;
-      animation: rise 560ms ease both;
-    }
-
-    .panel {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
-      backdrop-filter: blur(22px);
-      padding: 22px;
-    }
-
-    .brand {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px 18px;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: clamp(22px, 3vw, 30px);
-      line-height: 1;
-      letter-spacing: 0;
-    }
-
-    .brand p {
-      max-width: 460px;
-      margin: 8px 0 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .brand-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: auto;
-    }
-
-    .auth-state {
-      color: var(--muted);
-      font-size: 13px;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .plan-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-    }
-
-    .plan-badge.basic {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--muted);
-      border: 1px solid var(--line);
-    }
-
-    .plan-badge.plus {
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(251, 113, 133, 0.18));
-      color: #fbbf24;
-      border: 1px solid rgba(251, 191, 36, 0.4);
-    }
-
-    .upgrade-btn {
-      min-height: 32px;
-      padding: 0 12px;
-      font-size: 12px;
-      background: linear-gradient(135deg, #fbbf24, #fb7185);
-      color: #1f1306;
-      border-radius: 999px;
-    }
-
-    .upgrade-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.08);
-    }
-
-    .plan-modal-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: rgba(2, 6, 23, 0.78);
-      backdrop-filter: blur(14px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 200ms ease;
-    }
-
-    .plan-modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .plan-modal {
-      width: min(520px, 100%);
-      display: grid;
-      gap: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 12px;
-      padding: 28px;
-      background: rgba(15, 23, 42, 0.95);
-      box-shadow: 0 32px 100px rgba(0, 0, 0, 0.5);
-    }
-
-    .plan-modal h2 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 900;
-    }
-
-    .plan-modal p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .plan-cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .plan-card {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 18px;
-      background: rgba(15, 23, 42, 0.5);
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-
-    .plan-card.current {
-      border-color: rgba(96, 165, 250, 0.7);
-      background: rgba(96, 165, 250, 0.1);
-    }
-
-    .plan-card.premium-card {
-      border-color: rgba(251, 191, 36, 0.5);
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(251, 113, 133, 0.06));
-    }
-
-    .plan-card h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .plan-card .price {
-      font-size: 24px;
-      font-weight: 900;
-    }
-
-    .plan-card .price span {
-      font-size: 13px;
-      font-weight: 400;
-      color: var(--muted);
-    }
-
-    .plan-card ul {
-      margin: 0;
-      padding: 0 0 0 18px;
-      font-size: 13px;
-      line-height: 1.65;
-      color: #dbeafe;
-    }
-
-    .plan-card ul li.disabled {
-      color: var(--muted);
-      text-decoration: line-through;
-      opacity: 0.55;
-    }
-
-    .plan-card .current-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--blue);
-    }
-
-    .plan-card.premium-card .current-label {
-      color: #fbbf24;
-    }
-
-    .plan-modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
-    .connection {
-      min-width: 142px;
-      text-align: right;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .dot {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      margin-right: 8px;
-      border-radius: 999px;
-      background: var(--yellow);
-      box-shadow: 0 0 18px currentColor;
-      vertical-align: middle;
-    }
-
-    .dot.connected {
-      background: var(--green);
-    }
-
-    .dot.disconnected {
-      background: var(--red);
-    }
-
-    .section-title {
-      margin: 0 0 14px;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .stack {
-      display: grid;
-      gap: 14px;
-    }
-
-    [hidden] {
-      display: none !important;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .playback-controls button {
-      flex: 1;
-    }
-
-    input,
-    select {
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0 14px;
-      background: rgba(15, 23, 42, 0.56);
-      color: var(--text);
-      outline: none;
-      transition: border-color 160ms ease, background 160ms ease;
-    }
-
-    select {
-      appearance: none;
-    }
-
-    input:focus,
-    select:focus {
-      border-color: rgba(96, 165, 250, 0.85);
-      background: rgba(15, 23, 42, 0.74);
-    }
-
     button {
-      min-height: 46px;
-      border: 0;
+      min-height: 40px;
+      border: 1px solid transparent;
       border-radius: 8px;
       padding: 0 16px;
-      background: linear-gradient(135deg, #38bdf8, #34d399);
-      color: #06121f;
-      font-weight: 800;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 750;
       cursor: pointer;
-      transition: transform 160ms ease, opacity 160ms ease, filter 160ms ease;
-      white-space: nowrap;
-    }
-
-    button.secondary {
-      background: var(--panel-strong);
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    button.warning {
-      background: linear-gradient(135deg, #fbbf24, #fb7185);
-      color: #1f1306;
+      transition: transform 160ms ease, background 160ms ease, opacity 160ms ease;
     }
 
     button:hover:not(:disabled) {
       transform: translateY(-1px);
-      filter: brightness(1.05);
+      background: var(--accent-strong);
     }
 
     button:disabled {
@@ -361,268 +84,530 @@
       opacity: 0.48;
     }
 
-    button.loading {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+    button.secondary {
+      border-color: var(--line);
+      background: transparent;
+      color: var(--text);
     }
 
-    button.icon-btn {
+    button.secondary:hover:not(:disabled) {
+      background: var(--surface-soft);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: var(--surface-strong);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 76%);
+    }
+
+    input::placeholder {
+      color: color-mix(in srgb, var(--muted), transparent 15%);
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 64px;
+      padding: 10px clamp(18px, 4vw, 44px);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface), transparent 6%);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, var(--accent), #e1a442 52%, #c95a54);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .theme-toggle {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-strong);
+    }
+
+    .theme-toggle button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 0;
+      padding: 0 12px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .theme-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .auth-state {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .connection {
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      padding: 0 14px;
-      font-weight: 700;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
     }
 
-    button.icon-btn svg {
-      flex-shrink: 0;
-      opacity: 0.85;
-    }
-
-    button.icon-btn:hover:not(:disabled) svg {
-      opacity: 1;
-    }
-
-    button.icon-btn.pasted {
-      border-color: var(--green);
-      box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
-    }
-
-    button.icon-btn.pasted svg {
-      opacity: 1;
-      stroke: var(--green);
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
+    .dot {
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      animation: spin 720ms linear infinite;
+      background: var(--warning);
     }
 
-    body.busy {
-      overflow: hidden;
+    .dot.connected {
+      background: var(--ok);
     }
 
-    body.busy .app {
-      pointer-events: none;
-      user-select: none;
-      filter: blur(2px) saturate(0.75);
+    .dot.disconnected {
+      background: var(--danger);
     }
 
-    .busy-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
+    .main {
       display: grid;
-      place-items: center;
-      padding: 24px;
-      background: rgba(2, 6, 23, 0.72);
-      backdrop-filter: blur(14px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 180ms ease;
+      grid-template-rows: auto 1fr;
+      gap: 26px;
+      width: min(1420px, 100%);
+      margin: 0 auto;
+      padding: 34px clamp(18px, 4vw, 44px) 36px;
     }
 
-    .busy-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .busy-dialog {
-      width: min(360px, 100%);
+    .room-entry {
       display: grid;
+      gap: 18px;
       justify-items: center;
-      gap: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 8px;
-      padding: 26px;
-      background: rgba(15, 23, 42, 0.92);
-      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
+      padding: 40px 0 24px;
       text-align: center;
     }
 
-    .busy-ring {
-      width: 74px;
-      height: 74px;
-      border-radius: 50%;
-      background:
-        conic-gradient(from 0deg, #38bdf8, #34d399, #fbbf24, #38bdf8);
-      display: grid;
-      place-items: center;
-      animation: spin 980ms linear infinite;
-    }
-
-    .busy-ring::after {
-      content: "";
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      background: #0f172a;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-    }
-
-    .busy-title {
+    .room-entry h1 {
       margin: 0;
-      font-size: 18px;
-      font-weight: 900;
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
     }
 
-    .busy-text {
-      margin: -8px 0 0;
+    .room-entry p {
+      max-width: 580px;
+      margin: 0;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.45;
+      line-height: 1.55;
+    }
+
+    .join-panel {
+      display: grid;
+      gap: 12px;
+      width: min(420px, 100%);
+    }
+
+    .code-input {
+      min-height: 62px;
+      text-align: center;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .create-room {
+      width: min(420px, 100%);
+    }
+
+    .room-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 20px;
+      min-height: calc(100vh - 180px);
+    }
+
+    .room-shell[hidden],
+    .room-entry[hidden] {
+      display: none;
+    }
+
+    .room-strip {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 56px;
+      border-bottom: 1px solid var(--line);
     }
 
     .room-code {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      min-height: 52px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.08);
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      color: #e0f2fe;
-      flex: 1;
+      gap: 12px;
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 950;
+      letter-spacing: 0;
     }
 
-    .meta {
+    .room-code span {
+      color: var(--accent);
+    }
+
+    .room-meta {
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.5;
     }
 
-    .participants {
+    .library {
       display: grid;
-      gap: 10px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 18px;
+      min-width: 0;
     }
 
-    .participant {
+    .upload-band {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .upload-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .upload-tab {
+      min-height: 36px;
+      padding: 0 12px;
+      border-color: var(--line);
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .upload-tab.active {
+      border-color: transparent;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .upload-fields {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto auto;
+      gap: 10px;
+    }
+
+    .file-field {
+      display: none;
+    }
+
+    .file-field.active,
+    .url-field.active {
+      display: block;
+    }
+
+    .url-field {
+      display: none;
+    }
+
+    .track-title {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 14px;
+      min-height: 21px;
+    }
+
+    .library-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .library-column,
+    .tracks-column,
+    .participants-column {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .section-heading {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      min-height: 48px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px 12px;
-      background: rgba(15, 23, 42, 0.42);
+      min-height: 40px;
     }
 
-    .playlists,
-    .track-list {
-      display: grid;
-      gap: 10px;
+    .section-heading h2 {
       margin: 0;
-      padding: 0;
-      list-style: none;
+      font-size: 18px;
+      letter-spacing: 0;
     }
 
-    .playlist,
-    .track-item {
+    .playlist-create {
       display: grid;
-      gap: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px 12px;
-      background: rgba(15, 23, 42, 0.42);
-    }
-
-    .playlist {
-      grid-template-columns: 1fr auto;
-      align-items: center;
-    }
-
-    .delete-playlist-btn {
-      min-height: 32px;
-      padding: 0 10px;
-    }
-
-    .playlist[role="button"],
-    .track-item.selectable {
-      cursor: pointer;
-      transition: border-color 160ms ease, background 160ms ease;
-    }
-
-    .playlist[role="button"]:hover,
-    .track-item.selectable:hover,
-    .playlist.is-active {
-      border-color: rgba(96, 165, 250, 0.85);
-      background: rgba(96, 165, 250, 0.14);
-    }
-
-    .playlist-title,
-    .track-item-title {
-      overflow-wrap: anywhere;
-      font-weight: 700;
-    }
-
-    .track-item-controls {
-      display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
     }
 
-    .player {
-      width: 100%;
-      min-height: 46px;
-    }
-
-    .track-title {
-      min-height: 22px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.35;
-      overflow-wrap: anywhere;
-    }
-
-    .status {
-      min-height: 42px;
-      border-left: 3px solid var(--blue);
-      padding: 10px 12px;
+    .list-panel {
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(96, 165, 250, 0.1);
-      color: #dbeafe;
-      line-height: 1.35;
+      background: var(--surface);
+      box-shadow: var(--shadow);
     }
 
-    .status.error {
-      border-color: var(--red);
-      background: rgba(251, 113, 133, 0.1);
-      color: #ffe4e6;
+    .playlist,
+    .track-item,
+    .participant {
+      display: grid;
+      gap: 5px;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .playlist:last-child,
+    .track-item:last-child,
+    .participant:last-child {
+      border-bottom: 0;
+    }
+
+    .playlist {
+      cursor: pointer;
+    }
+
+    .playlist:hover,
+    .playlist.is-active {
+      background: var(--surface-soft);
+    }
+
+    .playlist-row,
+    .track-row,
+    .participant-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .playlist-title,
+    .track-name,
+    .participant-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 750;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .tiny-button {
+      min-height: 30px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
+
+    .empty-state {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      min-height: 180px;
+      padding: 26px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .participants-column {
+      min-width: 0;
+    }
+
+    .participants-list {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface), transparent 42%);
+    }
+
+    .participant-name {
+      white-space: normal;
+    }
+
+    .ready-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    .ready-dot.ready {
+      background: var(--ok);
+    }
+
+    .player-dock {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .player-meta {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .player {
+      width: min(620px, 42vw);
+      min-width: 320px;
     }
 
     .countdown {
-      min-height: 64px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.18);
-      font-size: 24px;
-      font-weight: 900;
+      color: var(--accent);
+      font-weight: 850;
+      white-space: nowrap;
     }
 
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .status {
+      grid-column: 1 / -1;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .busy-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.54);
+      backdrop-filter: blur(10px);
+    }
+
+    .busy-overlay[hidden] {
+      display: none;
+    }
+
+    .busy-dialog {
+      display: grid;
+      gap: 14px;
+      width: min(360px, 100%);
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .busy-ring {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto;
+      border: 4px solid var(--surface-soft);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 900ms linear infinite;
+    }
+
+    .busy-title {
+      margin: 0;
+      font-weight: 850;
+    }
+
+    .busy-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     @keyframes spin {
@@ -631,232 +616,218 @@
       }
     }
 
-    @media (max-width: 760px) {
-      body {
-        padding: 14px;
-      }
-
-      .app {
+    @media (max-width: 980px) {
+      .room-shell {
         grid-template-columns: 1fr;
       }
 
-      .brand {
+      .participants-list {
+        border-left: 0;
+      }
+
+      .player-dock {
+        grid-template-columns: 1fr;
+      }
+
+      .player {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
         align-items: flex-start;
         flex-direction: column;
       }
 
-      .brand-actions {
+      .topbar-actions {
+        justify-content: flex-start;
         width: 100%;
-        align-items: stretch;
-        flex-direction: column;
-        margin-left: 0;
       }
 
-      .auth-state {
-        text-align: left;
-      }
-
-      .plan-cards {
+      .library-grid,
+      .upload-fields,
+      .upload-band {
         grid-template-columns: 1fr;
       }
 
-      .connection {
-        text-align: left;
-      }
-
-      .track-item-controls {
+      .playlist-create {
         grid-template-columns: 1fr;
-      }
-
-      .row {
-        flex-direction: column;
       }
 
       button {
         width: 100%;
       }
 
-      button.icon-btn {
-        justify-content: center;
+      .theme-toggle,
+      .theme-toggle button {
+        width: auto;
       }
     }
   </style>
 </head>
 <body>
-  <main id="appRoot" class="app">
-    <section class="panel brand">
-      <div>
-        <h1>Unisonmusic</h1>
-        <p>Синхронный старт одного трека на нескольких устройствах.</p>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand" aria-label="Unisonmusic">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Unisonmusic</span>
       </div>
-      <div class="brand-actions">
-        <button id="loginButton" class="secondary" type="button">Sign in with Google</button>
+
+      <div class="topbar-actions">
+        <div class="theme-toggle" aria-label="Тема">
+          <button id="darkThemeButton" type="button">Темная</button>
+          <button id="lightThemeButton" type="button">Светлая</button>
+        </div>
+        <span id="authState" class="auth-state">Гость</span>
+        <button id="loginButton" class="secondary" type="button">Войти</button>
         <button id="logoutButton" class="secondary" type="button" hidden>Выйти</button>
-        <div id="authState" class="auth-state">Гость</div>
-        <span id="planBadge" class="plan-badge basic" hidden>Базовый</span>
-        <button id="upgradeButton" class="upgrade-btn" type="button" hidden>Unison+</button>
-        <div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionText">Подключение</span></div>
-      </div>
-    </section>
-
-    <section class="panel stack">
-      <h2 class="section-title">Комната</h2>
-      <div id="roomEntry" class="stack">
-        <button id="createRoomButton">Создать комнату</button>
-        <div class="row">
-          <input id="roomCodeInput" inputmode="numeric" maxlength="4" placeholder="Ввести код комнаты">
-          <button id="joinRoomButton" class="secondary">Войти</button>
+        <div class="connection">
+          <span id="connectionDot" class="dot"></span>
+          <span id="connectionText">Подключение</span>
         </div>
       </div>
-      <div class="row">
-        <div id="roomCode" class="room-code">---</div>
-        <button id="leaveRoomButton" class="secondary" hidden>Выйти</button>
-      </div>
-      <div id="roomMeta" class="meta">Комната еще не выбрана.</div>
+    </header>
 
-      <div id="roomContent" class="stack" hidden>
-      <h2 class="section-title">Трек</h2>
-      <div class="row">
-        <input id="trackUrlInput" type="url" placeholder="URL музыки">
-        <button id="pasteUrlButton" class="secondary icon-btn" type="button" title="Вставить URL из буфера обмена" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-          <span>Вставить</span>
-        </button>
-        <button id="setTrackButton" class="secondary" disabled>Загрузить</button>
-      </div>
-      <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
-      <div id="trackPlaylistControls" class="row" hidden>
-        <select id="trackPlaylistSelect" aria-label="Плейлист для трека"></select>
-        <button id="addCurrentTrackToPlaylistButton" class="secondary" type="button">Добавить в плейлист</button>
-      </div>
-      <audio id="audio" class="player" preload="auto" controls></audio>
-
-      <div class="row playback-controls">
-        <button id="startButton" class="warning" disabled>Начать</button>
-        <button id="stopButton" class="secondary" disabled>Остановить</button>
-        <button id="continueButton" class="secondary" disabled>Продолжить</button>
-      </div>
-      <div id="countdown" class="countdown">Ожидание</div>
-      <div id="status" class="status">Подключаемся к SignalR...</div>
-      </div>
-    </section>
-
-    <aside class="panel stack">
-      <h2 class="section-title">Участники</h2>
-      <ul id="participants" class="participants"></ul>
-      <div id="libraryPanel" class="stack" hidden>
-        <h2 class="section-title">Плейлисты</h2>
-        <div class="row">
-          <input id="playlistNameInput" maxlength="128" placeholder="Название плейлиста">
-          <button id="createPlaylistButton" class="secondary" type="button">Создать</button>
+    <main id="appRoot" class="main">
+      <section id="roomEntry" class="room-entry">
+        <h1>Войдите в комнату</h1>
+        <p>Введите трехзначный код. Когда третья цифра появится в поле, подключение начнется автоматически.</p>
+        <div class="join-panel">
+          <input id="roomCodeInput" class="code-input" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="000" aria-label="Код комнаты">
+          <button id="createRoomButton" class="create-room" type="button">Создать комнату</button>
         </div>
-        <ul id="playlists" class="playlists"></ul>
+      </section>
 
-        <h2 id="playlistTracksTitle" class="section-title">Треки плейлиста</h2>
-        <ul id="playlistTracks" class="track-list"></ul>
-      </div>
-    </aside>
-  </main>
+      <section id="roomShell" class="room-shell" hidden>
+        <div class="room-strip">
+          <div>
+            <div id="roomCode" class="room-code">Комната <span>---</span></div>
+            <div id="roomMeta" class="room-meta">Комната еще не выбрана.</div>
+          </div>
+          <button id="leaveRoomButton" class="secondary" type="button">Выйти из комнаты</button>
+        </div>
+
+        <section class="library" aria-label="Музыка">
+          <div class="upload-band">
+            <div class="upload-tabs" role="tablist" aria-label="Способ добавления музыки">
+              <button id="urlUploadTab" class="upload-tab active" type="button">URL</button>
+              <button id="fileUploadTab" class="upload-tab" type="button">Файл</button>
+            </div>
+            <div id="trackPlaylistControls" class="upload-tabs" hidden>
+              <select id="trackPlaylistSelect" aria-label="Плейлист для трека"></select>
+              <button id="addCurrentTrackToPlaylistButton" class="secondary" type="button">В плейлист</button>
+            </div>
+            <div class="upload-fields">
+              <input id="trackUrlInput" class="url-field active" type="url" placeholder="URL музыки">
+              <input id="trackFileInput" class="file-field" type="file" accept="audio/*">
+              <button id="pasteUrlButton" class="secondary" type="button">Вставить</button>
+              <button id="setTrackButton" type="button" disabled>Загрузить</button>
+              <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
+            </div>
+          </div>
+
+          <div class="library-grid">
+            <section class="library-column">
+              <div class="section-heading">
+                <h2>Плейлисты</h2>
+              </div>
+              <div class="playlist-create">
+                <input id="playlistNameInput" maxlength="128" placeholder="Название плейлиста">
+                <button id="createPlaylistButton" class="secondary" type="button">Создать</button>
+              </div>
+              <div class="list-panel">
+                <ul id="playlists" class="playlists"></ul>
+              </div>
+            </section>
+
+            <section class="tracks-column">
+              <div class="section-heading">
+                <h2 id="playlistTracksTitle">Треки</h2>
+              </div>
+              <div class="list-panel">
+                <ul id="playlistTracks" class="track-list"></ul>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="participants-column" aria-label="Участники">
+          <div class="section-heading">
+            <h2>Участники</h2>
+          </div>
+          <ul id="participants" class="participants-list"></ul>
+        </aside>
+
+        <section class="player-dock" aria-label="Плеер">
+          <div class="player-meta">
+            <div id="nowPlayingTitle" class="playlist-title">Ничего не играет</div>
+            <div id="countdown" class="countdown">Ожидание</div>
+          </div>
+          <audio id="audio" class="player" preload="auto" controls></audio>
+          <div id="status" class="status">Подключаемся к SignalR...</div>
+        </section>
+      </section>
+    </main>
+  </div>
 
   <div id="uploadOverlay" class="busy-overlay" hidden>
     <div class="busy-dialog" role="alertdialog" aria-modal="true" aria-labelledby="uploadOverlayTitle">
       <div class="busy-ring" aria-hidden="true"></div>
       <p id="uploadOverlayTitle" class="busy-title">Загружаем трек</p>
-      <p class="busy-text">Скачиваем музыку и готовим ее для синхронного воспроизведения.</p>
+      <p class="busy-text">Готовим файл для синхронного воспроизведения.</p>
       <button id="cancelUploadButton" class="secondary" type="button">Отмена</button>
     </div>
   </div>
 
-  <div id="planModalOverlay" class="plan-modal-overlay" hidden>
-    <div class="plan-modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
-      <h2 id="planModalTitle">Выберите план</h2>
-      <p>Расширьте возможности Unisonmusic с подпиской Unison+</p>
-      <div class="plan-cards">
-        <div id="basicPlanCard" class="plan-card current">
-          <span class="current-label">Текущий план</span>
-          <h3>Базовый</h3>
-          <div class="price">Бесплатно</div>
-          <ul>
-            <li>Синхронное воспроизведение</li>
-            <li class="disabled">Фоновое прослушивание</li>
-            <li>До 3 плейлистов</li>
-            <li>До 3 человек в комнате</li>
-          </ul>
-        </div>
-        <div id="plusPlanCard" class="plan-card premium-card">
-          <span class="current-label" hidden>Текущий план</span>
-          <h3>Unison+</h3>
-          <div class="price">199 &#8381;</div>
-          <p class="meta" style="margin:0;font-size:12px;">Разовая оплата · Навсегда</p>
-          <ul>
-            <li>Синхронное воспроизведение</li>
-            <li>Фоновое прослушивание</li>
-            <li>Безлимитные плейлисты</li>
-            <li>Безлимит участников комнаты</li>
-          </ul>
-        </div>
-      </div>
-      <div class="plan-modal-actions">
-        <button id="closePlanModalButton" class="secondary" type="button">Закрыть</button>
-        <button id="payButton" class="warning" type="button">Оформить Unison+</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    //const hubUrl = "http://192.168.0.47:5113/hubs/music";
-
     const apiBaseUrl = "https://api.unisonmusic.ru";
     const hubUrl = `${apiBaseUrl}/hubs/music`;
     const uploadFromUrlEndpoint = `${apiBaseUrl}/file/upload-from-url`;
+    const uploadFromFileEndpoint = `${apiBaseUrl}/file/upload-from-file`;
     const googleAuthEndpoint = `${apiBaseUrl}/identity/google-auth`;
     const logoutEndpoint = `${apiBaseUrl}/identity/auth/logout`;
     const playlistsEndpoint = `${apiBaseUrl}/playlists`;
-    const subscriptionsEndpoint = `${apiBaseUrl}/subscriptions`;
 
+    const appRoot = document.getElementById("appRoot");
     const connectionDot = document.getElementById("connectionDot");
     const connectionText = document.getElementById("connectionText");
     const loginButton = document.getElementById("loginButton");
     const logoutButton = document.getElementById("logoutButton");
     const authState = document.getElementById("authState");
-    const planBadge = document.getElementById("planBadge");
-    const upgradeButton = document.getElementById("upgradeButton");
-    const planModalOverlay = document.getElementById("planModalOverlay");
-    const closePlanModalButton = document.getElementById("closePlanModalButton");
-    const payButton = document.getElementById("payButton");
-    const basicPlanCard = document.getElementById("basicPlanCard");
-    const plusPlanCard = document.getElementById("plusPlanCard");
-    const createRoomButton = document.getElementById("createRoomButton");
-    const joinRoomButton = document.getElementById("joinRoomButton");
-    const roomCodeInput = document.getElementById("roomCodeInput");
+    const darkThemeButton = document.getElementById("darkThemeButton");
+    const lightThemeButton = document.getElementById("lightThemeButton");
     const roomEntry = document.getElementById("roomEntry");
-    const roomContent = document.getElementById("roomContent");
+    const roomShell = document.getElementById("roomShell");
+    const createRoomButton = document.getElementById("createRoomButton");
+    const roomCodeInput = document.getElementById("roomCodeInput");
     const leaveRoomButton = document.getElementById("leaveRoomButton");
     const roomCode = document.getElementById("roomCode");
     const roomMeta = document.getElementById("roomMeta");
+    const participants = document.getElementById("participants");
+    const urlUploadTab = document.getElementById("urlUploadTab");
+    const fileUploadTab = document.getElementById("fileUploadTab");
     const trackUrlInput = document.getElementById("trackUrlInput");
+    const trackFileInput = document.getElementById("trackFileInput");
     const pasteUrlButton = document.getElementById("pasteUrlButton");
     const setTrackButton = document.getElementById("setTrackButton");
-    const startButton = document.getElementById("startButton");
-    const stopButton = document.getElementById("stopButton");
-    const continueButton = document.getElementById("continueButton");
-    const participants = document.getElementById("participants");
-    const statusBox = document.getElementById("status");
     const trackTitle = document.getElementById("trackTitle");
     const trackPlaylistControls = document.getElementById("trackPlaylistControls");
     const trackPlaylistSelect = document.getElementById("trackPlaylistSelect");
     const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
-    const uploadOverlay = document.getElementById("uploadOverlay");
-    const cancelUploadButton = document.getElementById("cancelUploadButton");
-    const appRoot = document.getElementById("appRoot");
-    const countdown = document.getElementById("countdown");
-    const audio = document.getElementById("audio");
-    const libraryPanel = document.getElementById("libraryPanel");
     const playlistNameInput = document.getElementById("playlistNameInput");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
     const playlistTracks = document.getElementById("playlistTracks");
+    const nowPlayingTitle = document.getElementById("nowPlayingTitle");
+    const countdown = document.getElementById("countdown");
+    const audio = document.getElementById("audio");
+    const statusBox = document.getElementById("status");
+    const uploadOverlay = document.getElementById("uploadOverlay");
+    const cancelUploadButton = document.getElementById("cancelUploadButton");
+
     const clockSyncIntervalMs = 30000;
     const playbackCorrectionIntervalMs = 1000;
     const softSyncThresholdSeconds = 0.04;
@@ -864,6 +835,15 @@
     const playbackRateAdjustment = 0.02;
 
     let currentRoom = null;
+    let isRoomCreator = false;
+    let isAuthorized = false;
+    let userPlaylists = [];
+    let selectedPlaylistId = null;
+    let currentLibraryTrackId = null;
+    let currentLibraryTrackTitle = "";
+    let uploadMode = "url";
+    let uploadAbortController = null;
+    let autoJoinCode = "";
     let clockOffsetMs = 0;
     let clockSyncTimer = null;
     let clockSyncInProgress = false;
@@ -874,30 +854,17 @@
     let playbackCorrectionTimer = null;
     let playbackSyncStartAtMs = null;
     let playbackSyncStartPositionSeconds = 0;
-    let trackUploadInProgress = false;
-    let trackUploadAbortController = null;
-    let isRoomCreator = false;
-    let isAuthorized = false;
-    let userSubscription = null;
-    let userPlaylists = [];
-    let selectedPlaylistId = null;
-    let selectedPlaylistTracks = [];
-    let currentLibraryTrackId = null;
-    let currentLibraryTrackTitle = "";
+    let suppressAudioEvents = false;
+    let playbackCommandInProgress = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, { withCredentials: true })
-      .withAutomaticReconnect([0, 1000, 3000, 7000, 12000])
-      .configureLogging(signalR.LogLevel.Information)
+      .withAutomaticReconnect()
       .build();
 
     connection.on("RoomJoined", snapshot => {
       renderRoom(snapshot);
-      const action = isRoomCreator ? "создали" : "вошли в";
-      setStatus(`Вы ${action} комнату ${snapshot.roomCode}.`);
-      roomEntry.hidden = true;
-      roomContent.hidden = false;
-      leaveRoomButton.hidden = false;
+      setStatus("Вы в комнате.");
     });
 
     connection.on("RoomLeft", () => {
@@ -911,12 +878,11 @@
 
     connection.on("UserReadyUpdate", snapshot => {
       renderRoom(snapshot);
-      setStatus(snapshot.allReady ? "Сервер назначает старт..." : "Комната обновлена.");
     });
 
     connection.on("TrackUpdated", snapshot => {
       renderRoom(snapshot);
-      prepareAudio(snapshot.trackUrl);
+      prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
       setStatus("Трек загружен у участников.");
     });
 
@@ -970,70 +936,96 @@
         window.location.href = authUrl;
       } catch (error) {
         loginButton.disabled = false;
-        setStatus(error.message || "Не удалось начать авторизацию через Google.", true);
+        setStatus(error.message || "Не удалось войти.", true);
       }
     });
 
     logoutButton.addEventListener("click", async () => {
       logoutButton.disabled = true;
+
       try {
         await fetch(logoutEndpoint, {
           method: "POST",
           credentials: "include"
         });
-      } catch {}
-      renderGuestState();
-      setStatus("Вы вышли из аккаунта.");
-    });
 
-    upgradeButton.addEventListener("click", () => {
-      openPlanModal();
-    });
-
-    closePlanModalButton.addEventListener("click", () => {
-      closePlanModal();
-    });
-
-    planModalOverlay.addEventListener("click", (e) => {
-      if (e.target === planModalOverlay) {
-        closePlanModal();
-      }
-    });
-
-    payButton.addEventListener("click", async () => {
-      payButton.disabled = true;
-      payButton.textContent = "Перенаправляем...";
-
-      try {
-        const response = await apiFetch(`${subscriptionsEndpoint}/create-payment`, {
-          method: "POST"
-        });
-
-        const payment = await response.json();
-
-        if (payment.confirmationUrl) {
-          window.location.href = payment.confirmationUrl;
-        } else {
-          setStatus("Не удалось получить ссылку на оплату.", true);
-        }
+        renderGuestState();
+        setStatus("Вы вышли.");
       } catch (error) {
-        setStatus(error.message || "Не удалось создать платеж.", true);
+        setStatus(error.message || "Не удалось выйти.", true);
       } finally {
-        payButton.disabled = false;
-        payButton.textContent = "Оформить Unison+";
+        logoutButton.disabled = false;
       }
+    });
+
+    darkThemeButton.addEventListener("click", () => setTheme("dark"));
+    lightThemeButton.addEventListener("click", () => setTheme("light"));
+
+    createRoomButton.addEventListener("click", async () => {
+      isRoomCreator = true;
+      autoJoinCode = "";
+      await invokeHub("CreateRoom", await getClientDeviceInfo());
+    });
+
+    roomCodeInput.addEventListener("input", async () => {
+      roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 3);
+
+      if (roomCodeInput.value.length !== 3 || roomCodeInput.value === autoJoinCode) {
+        return;
+      }
+
+      autoJoinCode = roomCodeInput.value;
+      isRoomCreator = false;
+      await invokeHub("JoinRoom", autoJoinCode, await getClientDeviceInfo());
+    });
+
+    leaveRoomButton.addEventListener("click", async () => {
+      await invokeHub("LeaveRoom");
+    });
+
+    urlUploadTab.addEventListener("click", () => setUploadMode("url"));
+    fileUploadTab.addEventListener("click", () => setUploadMode("file"));
+
+    trackUrlInput.addEventListener("input", () => {
+      clearCurrentLibraryTrack();
+      updateSetTrackButton();
+    });
+
+    trackFileInput.addEventListener("change", () => {
+      clearCurrentLibraryTrack();
+      updateSetTrackButton();
+    });
+
+    pasteUrlButton.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) {
+          setStatus("Буфер обмена пуст.", true);
+          return;
+        }
+
+        setUploadMode("url");
+        trackUrlInput.value = text.trim();
+        updateSetTrackButton();
+        setStatus("URL вставлен.");
+      } catch {
+        setStatus("Нет доступа к буферу обмена. Вставьте ссылку вручную.", true);
+      }
+    });
+
+    setTrackButton.addEventListener("click", async () => {
+      if (uploadMode === "file") {
+        await uploadTrackFromFile();
+        return;
+      }
+
+      await uploadTrackFromUrl();
     });
 
     createPlaylistButton.addEventListener("click", async () => {
       const name = playlistNameInput.value.trim();
       if (!name) {
         setStatus("Введите название плейлиста.", true);
-        return;
-      }
-
-      const maxPlaylists = userSubscription?.limits?.maxPlaylists ?? 3;
-      if (maxPlaylists !== 2147483647 && userPlaylists.length >= maxPlaylists) {
-        openPlanModal();
         return;
       }
 
@@ -1058,154 +1050,59 @@
       await addTrackToPlaylist(currentLibraryTrackId, trackPlaylistSelect.value);
     });
 
-    createRoomButton.addEventListener("click", async () => {
-      isRoomCreator = true;
-      await invokeHub("CreateRoom", await getClientDeviceInfo());
-    });
-
-    joinRoomButton.addEventListener("click", async () => {
-      isRoomCreator = false;
-      const code = roomCodeInput.value.trim();
-      if (!/^\d{3,4}$/.test(code)) {
-        setStatus("Введите 3- или 4-значный код комнаты.", true);
+    audio.addEventListener("play", async () => {
+      if (suppressAudioEvents || playbackCommandInProgress || !audio.src || !currentRoom) {
         return;
       }
 
-      const maxRoomMembers = userSubscription?.limits?.maxRoomMembers ?? 3;
-      if (maxRoomMembers !== 2147483647 && currentRoom && currentRoom.users.length >= maxRoomMembers) {
-        openPlanModal();
-        return;
-      }
+      suppressAudioEvents = true;
+      audio.pause();
+      suppressAudioEvents = false;
 
-      await invokeHub("JoinRoom", code, await getClientDeviceInfo());
-    });
-
-    leaveRoomButton.addEventListener("click", async () => {
-      await invokeHub("LeaveRoom");
-    });
-
-    setTrackButton.addEventListener("click", async () => {
-      const url = trackUrlInput.value.trim();
-      if (!url) {
-        setStatus("Укажите URL трека.", true);
-        return;
-      }
-
-      trackUploadAbortController = new AbortController();
-      setTrackUploadInProgress(true);
-      setStatus("Загружаем трек из стримингового сервиса...");
+      playbackCommandInProgress = true;
+      playbackActive = true;
+      setControlsEnabled(Boolean(currentRoom));
 
       try {
-        const uploadedTrack = await uploadTrackFromUrl(url, trackUploadAbortController.signal);
-        const s3Url = uploadedTrack.s3Url || uploadedTrack.S3Url;
-        const sourceUrl = uploadedTrack.url || uploadedTrack.Url || url;
-        const title = uploadedTrack.trackTitle || uploadedTrack.TrackTitle || "";
-        const trackId = uploadedTrack.trackId || uploadedTrack.TrackId;
+        const resumePosition = pausedPositionSeconds ?? audio.currentTime ?? 0;
+        const command = pausedPositionSeconds === null
+          ? await invokeHub("StartPlayback")
+          : await invokeHub("ContinuePlayback", resumePosition);
 
-        if (!s3Url) {
-          throw new Error("Сервер не вернул S3 URL трека.");
-        }
-
-        trackUrlInput.value = sourceUrl;
-        setCurrentLibraryTrack(trackId, title || sourceUrl);
-        prepareAudio(s3Url, title);
-
-        const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
-        if (snapshot) {
-          setStatus("Трек загружен и готов к воспроизведению.");
-        }
-
-        if (isAuthorized && trackId) {
-          await refreshAuthState();
-        }
-      } catch (error) {
-        if (error.name === "AbortError") {
-          setStatus("Загрузка отменена.", true);
-        } else {
-          setStatus(error.message || "Не удалось загрузить трек.", true);
+        if (!command) {
+          playbackActive = false;
+          setControlsEnabled(Boolean(currentRoom));
         }
       } finally {
-        trackUploadAbortController = null;
-        setTrackUploadInProgress(false);
+        playbackCommandInProgress = false;
       }
     });
 
-    cancelUploadButton.addEventListener("click", () => {
-      trackUploadAbortController?.abort();
-      setTrackUploadInProgress(false);
-      setStatus("Отменяем загрузку...");
-    });
-
-    pasteUrlButton.addEventListener("click", async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (!text) {
-          setStatus("Буфер обмена пуст.", true);
-          return;
-        }
-        trackUrlInput.value = text.trim();
-        trackUrlInput.dispatchEvent(new Event("input"));
-        pasteUrlButton.classList.add("pasted");
-        setStatus("URL вставлен из буфера обмена.");
-        setTimeout(() => pasteUrlButton.classList.remove("pasted"), 1500);
-      } catch {
-        setStatus("Нет доступа к буферу обмена. Вставьте вручную (Ctrl+V).", true);
-      }
-    });
-
-    startButton.addEventListener("click", async () => {
-      await unlockAudio();
-      playbackActive = true;
-      setControlsEnabled(Boolean(currentRoom));
-
-      const command = await invokeHub("StartPlayback");
-      if (!command) {
-        playbackActive = false;
-        setControlsEnabled(Boolean(currentRoom));
-      }
-    });
-
-    stopButton.addEventListener("click", async () => {
-      await invokeHub("PausePlayback", audio.currentTime || 0);
-    });
-
-    continueButton.addEventListener("click", async () => {
-      if (pausedPositionSeconds === null) {
-        setStatus("Сначала остановите воспроизведение.", true);
+    audio.addEventListener("pause", async () => {
+      if (suppressAudioEvents || !playbackActive || !currentRoom || audio.ended) {
         return;
       }
 
-      await unlockAudio();
-      playbackActive = true;
-      setControlsEnabled(Boolean(currentRoom));
-
-      const command = await invokeHub("ContinuePlayback", pausedPositionSeconds);
-      if (!command) {
-        playbackActive = false;
-        setControlsEnabled(Boolean(currentRoom));
-      }
-    });
-
-    roomCodeInput.addEventListener("input", () => {
-      roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 4);
-    });
-
-    trackUrlInput.addEventListener("input", () => {
-      clearCurrentLibraryTrack();
-      updateSetTrackButton();
+      await invokeHub("PausePlayback", audio.currentTime || 0);
     });
 
     audio.addEventListener("ended", () => {
       stopPlaybackCorrection();
       playbackActive = false;
       pausedPositionSeconds = null;
+      countdown.textContent = "Завершено";
       setControlsEnabled(Boolean(currentRoom));
     });
 
-    start();
-    refreshAuthState().catch(() => {
-      renderGuestState();
+    cancelUploadButton.addEventListener("click", () => {
+      uploadAbortController?.abort();
+      setTrackUploadInProgress(false);
+      setStatus("Отменяем загрузку...");
     });
+
+    applyInitialTheme();
+    start();
+    refreshAuthState().catch(() => renderGuestState());
 
     async function start() {
       try {
@@ -1213,71 +1110,12 @@
         updateConnectionState("Подключено", "connected");
         await syncClock();
         startClockSync();
-        setStatus("SignalR подключен. Создайте комнату или войдите по коду.");
+        setStatus("SignalR подключен.");
       } catch (error) {
         updateConnectionState("Ошибка", "disconnected");
         setStatus(`Не удалось подключиться: ${error.message}`, true);
         setTimeout(start, 3000);
       }
-    }
-
-    async function getClientDeviceInfo() {
-      const userAgentData = navigator.userAgentData;
-
-      if (!userAgentData || typeof userAgentData.getHighEntropyValues !== "function") {
-        return null;
-      }
-
-      try {
-        const hints = await userAgentData.getHighEntropyValues(["model", "platform", "platformVersion"]);
-        const deviceType = userAgentData.mobile ? "Телефон" : null;
-        const model = cleanClientHintValue(hints.model);
-        const os = formatClientHintsOs(hints.platform, hints.platformVersion);
-
-        if (!deviceType && !model && !os) {
-          return null;
-        }
-
-        return {
-          DeviceType: deviceType,
-          Model: model,
-          Os: os
-        };
-      } catch {
-        return null;
-      }
-    }
-
-    function formatClientHintsOs(platform, platformVersion) {
-      const os = cleanClientHintValue(platform);
-      const version = cleanClientHintValue(platformVersion);
-
-      if (!os) {
-        return null;
-      }
-
-      if (os.toLowerCase() === "android" && version) {
-        return `Android ${version}`;
-      }
-
-      if (os.toLowerCase() === "ios" && version) {
-        return `iOS ${version.replaceAll("_", ".")}`;
-      }
-
-      if (os.toLowerCase() === "macos") {
-        return "macOS";
-      }
-
-      return os;
-    }
-
-    function cleanClientHintValue(value) {
-      if (!value || typeof value !== "string") {
-        return null;
-      }
-
-      const cleaned = value.trim();
-      return cleaned ? cleaned : null;
     }
 
     async function invokeHub(method, ...args) {
@@ -1332,15 +1170,13 @@
 
     function renderRoom(snapshot) {
       currentRoom = snapshot;
-      roomCode.textContent = snapshot.roomCode;
-      trackUrlInput.value = snapshot.trackSourceUrl || trackUrlInput.value;
-      renderTrackTitle(snapshot.trackTitle);
+      roomEntry.hidden = true;
+      roomShell.hidden = false;
+      roomCode.innerHTML = `Комната <span>${escapeHtml(snapshot.roomCode)}</span>`;
       roomMeta.textContent = `${snapshot.users.length} участник(ов).`;
 
-      const maxRoomMembers = userSubscription?.limits?.maxRoomMembers ?? 3;
-      if (maxRoomMembers !== 2147483647 && snapshot.users.length >= maxRoomMembers && !isRoomCreator) {
-        joinRoomButton.disabled = true;
-        roomMeta.textContent = `${snapshot.users.length} участник(ов). Лимит: ${maxRoomMembers} (Unison+).`;
+      if (snapshot.trackUrl && audio.getAttribute("src") !== snapshot.trackUrl) {
+        prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
       }
 
       const snapshotTrackId = snapshot.trackId ?? snapshot.TrackId ?? null;
@@ -1349,70 +1185,118 @@
         setCurrentLibraryTrack(snapshotTrackId, snapshotTrackTitle);
       }
 
-      if (snapshot.trackUrl && audio.src !== snapshot.trackUrl) {
-        prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
-      }
-
       participants.innerHTML = "";
       snapshot.users.forEach(user => {
         const li = document.createElement("li");
         li.className = "participant";
-        li.innerHTML = `<span>${escapeHtml(user.name)}</span>`;
+        li.innerHTML = `
+          <div class="participant-row">
+            <span class="participant-name">${escapeHtml(user.name)}</span>
+            <span class="ready-dot ${user.isReady ? "ready" : ""}" aria-hidden="true"></span>
+          </div>
+          <span class="meta">${user.isReady ? "Готов" : "В комнате"}</span>
+        `;
         participants.appendChild(li);
       });
-
-      if (snapshot.users.length === 0) {
-        participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
-      }
 
       setControlsEnabled(true);
     }
 
     function resetRoom() {
       currentRoom = null;
-      isRoomCreator = false;
       roomEntry.hidden = false;
-      roomContent.hidden = true;
-      leaveRoomButton.hidden = true;
-      roomCode.textContent = "---";
+      roomShell.hidden = true;
+      roomCodeInput.value = "";
+      autoJoinCode = "";
+      roomCode.innerHTML = "Комната <span>---</span>";
       roomMeta.textContent = "Комната еще не выбрана.";
-      participants.innerHTML = '<li class="participant"><span>Пока никого нет</span></li>';
-      trackTitle.textContent = "Трек еще не выбран.";
-      audio.src = "";
+      participants.innerHTML = "";
+      audio.removeAttribute("src");
+      audio.load();
+      stopPlaybackCorrection();
+      clearInterval(countdownTimer);
+      clearTimeout(startTimeout);
       playbackActive = false;
       pausedPositionSeconds = null;
       countdown.textContent = "Ожидание";
+      nowPlayingTitle.textContent = "Ничего не играет";
       setControlsEnabled(false);
-    }
-
-    function isValidUrl(str) {
-      try {
-        const u = new URL(str);
-        return u.protocol === "http:" || u.protocol === "https:";
-      } catch {
-        return false;
-      }
-    }
-
-    function updateSetTrackButton() {
-      const connected = connection.state === signalR.HubConnectionState.Connected;
-      const url = trackUrlInput.value.trim();
-      setTrackButton.disabled = !connected || !currentRoom || trackUploadInProgress || !isValidUrl(url);
     }
 
     function setControlsEnabled(joinedRoom) {
       const connected = connection.state === signalR.HubConnectionState.Connected;
-      pasteUrlButton.disabled = !connected || !joinedRoom || trackUploadInProgress;
-      updateSetTrackButton();
-      startButton.disabled = !connected || !joinedRoom || !audio.src || playbackActive;
-      stopButton.disabled = !connected || !joinedRoom || !audio.src || !playbackActive;
-      continueButton.disabled = !connected || !joinedRoom || !audio.src || pausedPositionSeconds === null || playbackActive;
+      const canUseRoom = connected && joinedRoom;
+      const canUseLibrary = canUseRoom && isAuthorized;
+
+      createRoomButton.disabled = !connected;
+      roomCodeInput.disabled = !connected;
+      leaveRoomButton.disabled = !canUseRoom;
+      trackUrlInput.disabled = !canUseRoom || uploadMode !== "url";
+      trackFileInput.disabled = !canUseRoom || uploadMode !== "file";
+      pasteUrlButton.disabled = !canUseRoom || uploadMode !== "url";
+      setTrackButton.disabled = !canUseRoom || !hasUploadSource();
+      playlistNameInput.disabled = !canUseLibrary;
+      createPlaylistButton.disabled = !canUseLibrary || !playlistNameInput.value.trim();
+      trackPlaylistSelect.disabled = !canUseLibrary;
+      addCurrentTrackToPlaylistButton.disabled = !canUseLibrary || !currentLibraryTrackId || !trackPlaylistSelect.value;
+      audio.disabled = !canUseRoom || !audio.src;
     }
 
-    async function uploadTrackFromUrl(url, signal) {
-      const response = await fetch(uploadFromUrlEndpoint, {
+    async function uploadTrackFromUrl() {
+      const url = trackUrlInput.value.trim();
+      if (!url) {
+        setStatus("Укажите URL трека.", true);
+        return;
+      }
+
+      uploadAbortController = new AbortController();
+      setTrackUploadInProgress(true);
+      setStatus("Загружаем музыку по URL...");
+
+      try {
+        const uploadedTrack = await requestTrackFromUrl(url, uploadAbortController.signal);
+        await applyUploadedTrack(uploadedTrack, url);
+      } catch (error) {
+        if (error.name === "AbortError") {
+          setStatus("Загрузка отменена.", true);
+        } else {
+          setStatus(error.message || "Не удалось загрузить трек.", true);
+        }
+      } finally {
+        uploadAbortController = null;
+        setTrackUploadInProgress(false);
+      }
+    }
+
+    async function uploadTrackFromFile() {
+      const file = trackFileInput.files?.[0];
+      if (!file) {
+        setStatus("Выберите аудиофайл.", true);
+        return;
+      }
+
+      uploadAbortController = new AbortController();
+      setTrackUploadInProgress(true);
+      setStatus("Загружаем файл...");
+
+      try {
+        const uploadedTrack = await requestTrackFromFile(file, uploadAbortController.signal);
+        await applyUploadedTrack(uploadedTrack, file.name);
+      } catch (error) {
+        if (error.name === "AbortError") {
+          setStatus("Загрузка отменена.", true);
+        } else {
+          setStatus(error.message || "Не удалось загрузить файл.", true);
+        }
+      } finally {
+        uploadAbortController = null;
+        setTrackUploadInProgress(false);
+      }
+    }
+
+    async function requestTrackFromUrl(url, signal) {
+      const response = await apiFetch(uploadFromUrlEndpoint, {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -1420,449 +1304,52 @@
         signal
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Ошибка загрузки трека: ${response.status}`);
-      }
-
-      return response.json();
+      return await response.json();
     }
 
-    async function refreshAuthState() {
-      try {
-        const playlistsResponse = await fetch(playlistsEndpoint, {
-          method: "GET",
-          credentials: "include"
-        });
+    async function requestTrackFromFile(file, signal) {
+      const formData = new FormData();
+      formData.append("file", file);
 
-        if (playlistsResponse.status === 401) {
-          renderGuestState();
-          return;
-        }
-
-        if (!playlistsResponse.ok) {
-          throw new Error(`Не удалось загрузить плейлисты: ${playlistsResponse.status}`);
-        }
-
-        userPlaylists = await playlistsResponse.json();
-        isAuthorized = true;
-        libraryPanel.hidden = false;
-        loginButton.hidden = true;
-        logoutButton.hidden = false;
-        authState.textContent = "Вы вошли";
-
-        await refreshSubscriptionState();
-
-        renderPlaylists();
-        renderTrackPlaylistControls();
-        await refreshSelectedPlaylistTracks();
-      } catch {
-        renderGuestState();
-      }
-    }
-
-    async function refreshSubscriptionState() {
-      try {
-        const response = await apiFetch(subscriptionsEndpoint, {
-          method: "GET"
-        });
-
-        userSubscription = await response.json();
-        renderSubscriptionBadge();
-      } catch {
-        userSubscription = { plan: "basic", displayName: "Базовый", isActive: false, limits: { maxPlaylists: 3, maxRoomMembers: 3, backgroundPlay: false } };
-        renderSubscriptionBadge();
-      }
-    }
-
-    function renderSubscriptionBadge() {
-      const plan = userSubscription?.plan || "basic";
-      const isPlus = plan === "plus";
-
-      planBadge.textContent = isPlus ? "Unison+" : "Базовый";
-      planBadge.className = `plan-badge ${isPlus ? "plus" : "basic"}`;
-      planBadge.hidden = false;
-
-      upgradeButton.hidden = isPlus;
-      authState.textContent = isPlus ? "Вы вошли · Unison+" : "Вы вошли";
-
-      renderPlaylistCreateLimit();
-      applyBackgroundPlayRestriction();
-    }
-
-    function renderPlaylistCreateLimit() {
-      if (!userSubscription) {
-        createPlaylistButton.disabled = false;
-        return;
-      }
-
-      const maxPlaylists = userSubscription.limits?.maxPlaylists ?? 3;
-      const isAtLimit = maxPlaylists !== 2147483647 && userPlaylists.length >= maxPlaylists;
-      createPlaylistButton.disabled = isAtLimit;
-
-      if (isAtLimit) {
-        playlistNameInput.placeholder = `Лимит: ${maxPlaylists} плейлистов`;
-      } else {
-        playlistNameInput.placeholder = "Название плейлиста";
-      }
-    }
-
-    function applyBackgroundPlayRestriction() {
-      if (userSubscription?.limits?.backgroundPlay) {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      } else {
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-      }
-    }
-
-    function handleVisibilityChange() {
-      if (document.hidden && playbackActive && !userSubscription?.limits?.backgroundPlay) {
-        audio.pause();
-        playbackActive = false;
-        pausedPositionSeconds = audio.currentTime;
-        setControlsEnabled(Boolean(currentRoom));
-        countdown.textContent = "Пауза (фоном)";
-        setStatus("Фоновое воспроизведение доступно в Unison+.");
-      }
-    }
-
-    function openPlanModal() {
-      const isPlus = userSubscription?.plan === "plus";
-
-      basicPlanCard.classList.toggle("current", !isPlus);
-      plusPlanCard.classList.toggle("current", isPlus);
-
-      basicPlanCard.querySelector(".current-label").hidden = isPlus;
-      plusPlanCard.querySelector(".current-label").hidden = !isPlus;
-
-      payButton.hidden = isPlus;
-      if (isPlus) {
-        payButton.style.display = "none";
-        closePlanModalButton.textContent = "Закрыть";
-      } else {
-        payButton.style.display = "";
-        closePlanModalButton.textContent = "Закрыть";
-      }
-
-      planModalOverlay.hidden = false;
-      requestAnimationFrame(() => planModalOverlay.classList.add("active"));
-    }
-
-    function closePlanModal() {
-      planModalOverlay.classList.remove("active");
-      setTimeout(() => { planModalOverlay.hidden = true; }, 200);
-    }
-
-    function renderGuestState() {
-      isAuthorized = false;
-      userPlaylists = [];
-      userSubscription = null;
-      selectedPlaylistId = null;
-      selectedPlaylistTracks = [];
-      currentLibraryTrackId = null;
-      currentLibraryTrackTitle = "";
-      libraryPanel.hidden = true;
-      playlistTracksTitle.textContent = "Треки плейлиста";
-      playlistTracks.innerHTML = "";
-      renderTrackPlaylistControls();
-      loginButton.hidden = false;
-      loginButton.disabled = false;
-      logoutButton.hidden = true;
-      authState.textContent = "Гость";
-      planBadge.hidden = true;
-      upgradeButton.hidden = true;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }
-
-    function renderPlaylists() {
-      playlists.innerHTML = "";
-
-      if (userPlaylists.length === 0) {
-        playlists.innerHTML = '<li class="playlist"><span class="meta">Плейлистов пока нет</span></li>';
-        selectedPlaylistId = null;
-        renderPlaylistTracks();
-        return;
-      }
-
-      userPlaylists.forEach(playlist => {
-        const li = document.createElement("li");
-        const playlistId = playlist.id || playlist.Id;
-        const name = playlist.name || playlist.Name || "Без названия";
-        const trackCount = playlist.trackCount ?? playlist.TrackCount ?? 0;
-        li.className = "playlist";
-        li.classList.toggle("is-active", String(playlistId) === String(selectedPlaylistId));
-        li.role = "button";
-        li.tabIndex = 0;
-        li.innerHTML = `
-          <div>
-            <span class="playlist-title">${escapeHtml(name)}</span>
-            <span class="meta">${trackCount} трек(ов)</span>
-          </div>
-          <button class="secondary icon-btn delete-playlist-btn" data-playlist-id="${playlistId}" data-playlist-name="${escapeHtml(name)}" title="Удалить плейлист" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        `;
-        li.querySelector(".delete-playlist-btn").addEventListener("click", event => {
-          event.stopPropagation();
-          deletePlaylist(playlistId, name);
-        });
-        li.addEventListener("click", () => {
-          selectPlaylist(playlistId, name);
-        });
-        li.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectPlaylist(playlistId, name);
-          }
-        });
-        playlists.appendChild(li);
+      const response = await apiFetch(uploadFromFileEndpoint, {
+        method: "POST",
+        body: formData,
+        signal
       });
 
-      renderTrackPlaylistControls();
-
-      if (!userPlaylists.some(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId))) {
-        selectedPlaylistId = null;
-        selectedPlaylistTracks = [];
-        renderPlaylistTracks();
-      }
+      return await response.json();
     }
 
-    async function selectPlaylist(playlistId, playlistName) {
-      selectedPlaylistId = playlistId;
-      playlistTracksTitle.textContent = playlistName;
-      renderPlaylists();
+    async function applyUploadedTrack(uploadedTrack, fallbackSource) {
+      const s3Url = uploadedTrack.s3Url || uploadedTrack.S3Url;
+      const sourceUrl = uploadedTrack.url || uploadedTrack.Url || fallbackSource;
+      const title = uploadedTrack.trackTitle || uploadedTrack.TrackTitle || sourceUrl;
+      const trackId = uploadedTrack.trackId || uploadedTrack.TrackId;
 
-      try {
-        await loadPlaylistTracks(playlistId);
-      } catch (error) {
-        setStatus(error.message || "Не удалось загрузить треки плейлиста.", true);
-      }
-    }
-
-    async function refreshSelectedPlaylistTracks() {
-      if (!selectedPlaylistId) {
-        renderPlaylistTracks();
-        return;
+      if (!s3Url) {
+        throw new Error("Сервер не вернул S3 URL трека.");
       }
 
-      const selectedPlaylist = userPlaylists.find(
-        playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId));
-
-      if (!selectedPlaylist) {
-        selectedPlaylistId = null;
-        selectedPlaylistTracks = [];
-        renderPlaylistTracks();
-        return;
-      }
-
-      playlistTracksTitle.textContent = selectedPlaylist.name || selectedPlaylist.Name || "Треки плейлиста";
-      await loadPlaylistTracks(selectedPlaylistId);
-    }
-
-    async function loadPlaylistTracks(playlistId) {
-      const response = await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
-        method: "GET"
-      });
-
-      selectedPlaylistTracks = await response.json();
-      renderPlaylistTracks();
-    }
-
-    function renderPlaylistTracks() {
-      playlistTracks.innerHTML = "";
-
-      if (!selectedPlaylistId) {
-        playlistTracksTitle.textContent = "Треки плейлиста";
-        playlistTracks.innerHTML = '<li class="track-item"><span class="meta">Выберите плейлист</span></li>';
-        return;
-      }
-
-      if (selectedPlaylistTracks.length === 0) {
-        playlistTracks.innerHTML = '<li class="track-item"><span class="meta">В плейлисте пока нет треков</span></li>';
-        return;
-      }
-
-      selectedPlaylistTracks.forEach(track => {
-        const li = document.createElement("li");
-        const title = track.trackTitle || track.TrackTitle || track.url || track.Url || "Без названия";
-        const url = track.url || track.Url || "";
-
-        li.className = "track-item selectable";
-        li.role = "button";
-        li.tabIndex = 0;
-        li.innerHTML = `
-          <span class="track-item-title">${escapeHtml(title)}</span>
-        `;
-        li.addEventListener("click", () => {
-          selectPlaylistTrack(track);
-        });
-        li.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectPlaylistTrack(track);
-          }
-        });
-        playlistTracks.appendChild(li);
-      });
-    }
-
-    function selectPlaylistTrack(track) {
-      const trackId = track.id || track.Id;
-      const sourceUrl = track.url || track.Url || "";
-      const s3Url = track.s3Url || track.S3Url || "";
-      const title = track.trackTitle || track.TrackTitle || "Трек";
-
-      if (!sourceUrl) {
-        setStatus("У выбранного трека нет исходного URL.", true);
-        return;
-      }
-
-      trackUrlInput.value = sourceUrl;
       setCurrentLibraryTrack(trackId, title);
+      prepareAudio(s3Url, title);
 
-      if (s3Url) {
-        prepareAudio(s3Url, title);
-        invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
-        setStatus(`Трек "${title}" загружен из плейлиста.`);
-      } else {
-        updateSetTrackButton();
-        setStatus(`URL трека "${title}" подставлен. Нажмите «Загрузить».`);
-      }
-    }
-
-    function setCurrentLibraryTrack(trackId, title) {
-      currentLibraryTrackId = trackId || null;
-      currentLibraryTrackTitle = title || "";
-      renderTrackPlaylistControls();
-    }
-
-    function clearCurrentLibraryTrack() {
-      currentLibraryTrackId = null;
-      currentLibraryTrackTitle = "";
-      renderTrackPlaylistControls();
-    }
-
-    function renderTrackPlaylistControls() {
-      const canAssign = isAuthorized && currentLibraryTrackId && userPlaylists.length > 0;
-      trackPlaylistControls.hidden = !canAssign;
-      addCurrentTrackToPlaylistButton.disabled = !canAssign;
-
-      if (!canAssign) {
-        trackPlaylistSelect.innerHTML = "";
-        return;
+      const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
+      if (snapshot) {
+        setStatus("Трек готов к воспроизведению.");
       }
 
-      const previousValue = trackPlaylistSelect.value || selectedPlaylistId;
-      trackPlaylistSelect.innerHTML = "";
-
-      userPlaylists.forEach(playlist => {
-        const playlistId = playlist.id || playlist.Id;
-        const playlistName = playlist.name || playlist.Name || "Без названия";
-        const option = document.createElement("option");
-        option.value = playlistId;
-        option.textContent = playlistName;
-        trackPlaylistSelect.appendChild(option);
-      });
-
-      if (previousValue && [...trackPlaylistSelect.options].some(option => String(option.value) === String(previousValue))) {
-        trackPlaylistSelect.value = previousValue;
-      }
-    }
-
-    async function addTrackToPlaylist(trackId, playlistId) {
-      if (!trackId || !playlistId) {
-        setStatus("Выберите плейлист для трека.", true);
-        return;
-      }
-
-      try {
-        await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ trackId })
-        });
-
-        selectedPlaylistId = playlistId;
+      if (isAuthorized && trackId) {
         await refreshAuthState();
-        const title = currentLibraryTrackTitle || "Трек";
-        setStatus(`"${title}" добавлен в плейлист.`);
-      } catch (error) {
-        setStatus(error.message || "Не удалось добавить трек в плейлист.", true);
-      }
-    }
-
-    async function deletePlaylist(playlistId, name) {
-      if (!confirm(`Удалить плейлист "${name}"?`)) {
-        return;
-      }
-
-      try {
-        await apiFetch(`${playlistsEndpoint}/${playlistId}`, {
-          method: "DELETE"
-        });
-
-        if (String(selectedPlaylistId) === String(playlistId)) {
-          selectedPlaylistId = null;
-          selectedPlaylistTracks = [];
-          playlistTracksTitle.textContent = "Треки плейлиста";
-        }
-
-        await refreshAuthState();
-        setStatus(`Плейлист "${name}" удален.`);
-      } catch (error) {
-        setStatus(error.message || "Не удалось удалить плейлист.", true);
-      }
-    }
-
-    async function apiFetch(url, options = {}) {
-      const response = await fetch(url, {
-        credentials: "include",
-        ...options
-      });
-
-      if (response.status === 401) {
-        renderGuestState();
-        throw new Error("Нужно войти через Google.");
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(normalizeTextResponse(errorText) || `Ошибка запроса: ${response.status}`);
-      }
-
-      return response;
-    }
-
-    function normalizeTextResponse(value) {
-      const text = value.trim();
-
-      if (!text) {
-        return "";
-      }
-
-      try {
-        const parsed = JSON.parse(text);
-        return typeof parsed === "string" ? parsed : text;
-      } catch {
-        return text;
       }
     }
 
     function setTrackUploadInProgress(inProgress) {
-      trackUploadInProgress = inProgress;
       document.body.classList.toggle("busy", inProgress);
       appRoot.inert = inProgress;
       appRoot.setAttribute("aria-busy", String(inProgress));
       uploadOverlay.hidden = !inProgress;
-      uploadOverlay.classList.toggle("active", inProgress);
-      setTrackButton.classList.toggle("loading", inProgress);
-      setTrackButton.innerHTML = inProgress
-        ? '<span class="spinner" aria-hidden="true"></span><span>Загрузка</span>'
-        : "Загрузить";
+      setTrackButton.disabled = inProgress || !hasUploadSource();
       cancelUploadButton.disabled = !inProgress;
-      setControlsEnabled(Boolean(currentRoom));
     }
 
     function prepareAudio(url, title = "") {
@@ -1870,9 +1357,11 @@
         return;
       }
 
+      suppressAudioEvents = true;
       audio.src = url;
       audio.preload = "auto";
       audio.load();
+      suppressAudioEvents = false;
       stopPlaybackCorrection();
       pausedPositionSeconds = null;
       playbackActive = false;
@@ -1881,28 +1370,9 @@
     }
 
     function renderTrackTitle(title) {
-      trackTitle.textContent = title?.trim()
-        ? `Сейчас выбран: ${title.trim()}`
-        : "Трек еще не выбран.";
-    }
-
-    async function unlockAudio() {
-      if (!audio.src) {
-        return;
-      }
-
-      const wasMuted = audio.muted;
-
-      try {
-        audio.muted = true;
-        await audio.play();
-        audio.pause();
-        audio.currentTime = 0;
-      } catch {
-        // Browser may block autoplay; a manual click on the audio controls will unlock it.
-      } finally {
-        audio.muted = wasMuted;
-      }
+      const text = title?.trim() ? title.trim() : "Трек еще не выбран.";
+      trackTitle.textContent = text;
+      nowPlayingTitle.textContent = text;
     }
 
     function scheduleLocalPlayback(startAt, positionSeconds = 0) {
@@ -1919,7 +1389,7 @@
       const startAtMs = new Date(startAt).getTime();
       const delay = Math.max(0, startAtMs - (Date.now() + clockOffsetMs));
 
-      setStatus(`Старт с ${startPosition.toFixed(1)} сек назначен на ${new Date(startAt).toLocaleTimeString("ru-RU", { timeZone: "UTC" })} UTC.`);
+      setStatus(`Старт назначен на ${new Date(startAt).toLocaleTimeString("ru-RU", { timeZone: "UTC" })} UTC.`);
       renderCountdown(delay);
 
       countdownTimer = setInterval(() => {
@@ -1935,10 +1405,15 @@
           const elapsedSeconds = Math.max(0, ((Date.now() + clockOffsetMs) - startAtMs) / 1000);
           const targetPosition = startPosition + elapsedSeconds;
           setAudioPosition(targetPosition);
+
+          suppressAudioEvents = true;
           await audio.play();
+          suppressAudioEvents = false;
+
           startPlaybackCorrection(startAtMs, startPosition);
           setStatus("Воспроизведение запущено.");
         } catch (error) {
+          suppressAudioEvents = false;
           stopPlaybackCorrection();
           playbackActive = false;
           setControlsEnabled(Boolean(currentRoom));
@@ -1953,12 +1428,14 @@
       stopPlaybackCorrection();
 
       const targetPosition = Math.max(0, Number(positionSeconds) || 0);
+      suppressAudioEvents = true;
       audio.pause();
 
       if (audio.src) {
         setAudioPosition(targetPosition);
       }
 
+      suppressAudioEvents = false;
       pausedPositionSeconds = targetPosition;
       playbackActive = false;
       setControlsEnabled(Boolean(currentRoom));
@@ -2028,6 +1505,300 @@
         : `${(leftMs / 1000).toFixed(1)} сек`;
     }
 
+    async function refreshAuthState() {
+      try {
+        const playlistsResponse = await fetch(playlistsEndpoint, {
+          method: "GET",
+          credentials: "include"
+        });
+
+        if (playlistsResponse.status === 401) {
+          renderGuestState();
+          return;
+        }
+
+        if (!playlistsResponse.ok) {
+          throw new Error(`Не удалось загрузить плейлисты: ${playlistsResponse.status}`);
+        }
+
+        userPlaylists = await playlistsResponse.json();
+        isAuthorized = true;
+        authState.textContent = "Вы вошли";
+        loginButton.hidden = true;
+        logoutButton.hidden = false;
+        renderPlaylists();
+        renderTrackPlaylistOptions();
+        setControlsEnabled(Boolean(currentRoom));
+      } catch (error) {
+        renderGuestState();
+        setStatus(error.message || "Не удалось проверить авторизацию.", true);
+      }
+    }
+
+    function renderGuestState() {
+      isAuthorized = false;
+      userPlaylists = [];
+      selectedPlaylistId = null;
+      authState.textContent = "Гость";
+      loginButton.hidden = false;
+      logoutButton.hidden = true;
+      renderPlaylists();
+      renderPlaylistTracks([]);
+      renderTrackPlaylistOptions();
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function renderPlaylists() {
+      playlists.innerHTML = "";
+
+      if (!isAuthorized) {
+        playlists.innerHTML = '<li class="empty-state">Войдите, чтобы хранить плейлисты и треки.</li>';
+        return;
+      }
+
+      if (!userPlaylists.length) {
+        playlists.innerHTML = '<li class="empty-state">Плейлистов пока нет.</li>';
+        return;
+      }
+
+      if (!selectedPlaylistId || !userPlaylists.some(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId))) {
+        selectedPlaylistId = userPlaylists[0].id || userPlaylists[0].Id;
+      }
+
+      userPlaylists.forEach(playlist => {
+        const playlistId = playlist.id || playlist.Id;
+        const name = playlist.name || playlist.Name || "Без названия";
+        const trackCount = playlist.trackCount ?? playlist.TrackCount ?? 0;
+        const li = document.createElement("li");
+        li.className = "playlist";
+        li.classList.toggle("is-active", String(playlistId) === String(selectedPlaylistId));
+        li.tabIndex = 0;
+        li.innerHTML = `
+          <div class="playlist-row">
+            <span class="playlist-title">${escapeHtml(name)}</span>
+            <button class="secondary tiny-button" data-delete-playlist-id="${playlistId}" data-playlist-name="${escapeHtml(name)}" type="button">Удалить</button>
+          </div>
+          <span class="meta">${trackCount} трек(ов)</span>
+        `;
+
+        li.addEventListener("click", event => {
+          if (event.target.closest("button")) {
+            return;
+          }
+
+          selectPlaylist(playlistId, name);
+        });
+
+        li.addEventListener("keydown", event => {
+          if (event.key === "Enter") {
+            selectPlaylist(playlistId, name);
+          }
+        });
+
+        li.querySelector("[data-delete-playlist-id]").addEventListener("click", () => {
+          deletePlaylist(playlistId, name);
+        });
+
+        playlists.appendChild(li);
+      });
+
+      const selected = userPlaylists.find(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId));
+      if (selected) {
+        loadPlaylistTracks(selectedPlaylistId).catch(error => setStatus(error.message, true));
+      }
+    }
+
+    async function selectPlaylist(playlistId, playlistName) {
+      selectedPlaylistId = playlistId;
+      playlistTracksTitle.textContent = playlistName;
+      renderPlaylists();
+      await loadPlaylistTracks(playlistId);
+    }
+
+    async function loadPlaylistTracks(playlistId) {
+      if (!isAuthorized || !playlistId) {
+        renderPlaylistTracks([]);
+        return;
+      }
+
+      const response = await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
+        method: "GET"
+      });
+
+      const tracks = await response.json();
+      renderPlaylistTracks(tracks);
+    }
+
+    function renderPlaylistTracks(tracks) {
+      playlistTracks.innerHTML = "";
+
+      if (!isAuthorized) {
+        playlistTracks.innerHTML = '<li class="empty-state">После входа здесь будут треки выбранного плейлиста.</li>';
+        playlistTracksTitle.textContent = "Треки";
+        return;
+      }
+
+      if (!tracks.length) {
+        playlistTracks.innerHTML = '<li class="empty-state">В плейлисте пока нет треков.</li>';
+        return;
+      }
+
+      tracks.forEach(track => {
+        const trackId = track.id || track.Id;
+        const title = track.trackTitle || track.TrackTitle || track.url || track.Url || "Без названия";
+        const s3Url = track.s3Url || track.S3Url;
+        const sourceUrl = track.url || track.Url || title;
+        const li = document.createElement("li");
+        li.className = "track-item";
+        li.innerHTML = `
+          <div class="track-row">
+            <span class="track-name">${escapeHtml(title)}</span>
+            <button class="secondary tiny-button" data-track-id="${trackId}" type="button">Выбрать</button>
+          </div>
+          <span class="meta">${escapeHtml(sourceUrl)}</span>
+        `;
+
+        li.querySelector("[data-track-id]").addEventListener("click", async () => {
+          if (!s3Url) {
+            setStatus("У трека нет S3 URL.", true);
+            return;
+          }
+
+          setCurrentLibraryTrack(trackId, title);
+          prepareAudio(s3Url, title);
+          await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
+        });
+
+        playlistTracks.appendChild(li);
+      });
+    }
+
+    function renderTrackPlaylistOptions() {
+      trackPlaylistSelect.innerHTML = "";
+
+      if (!isAuthorized || !userPlaylists.length) {
+        trackPlaylistControls.hidden = true;
+        return;
+      }
+
+      userPlaylists.forEach(playlist => {
+        const option = document.createElement("option");
+        option.value = playlist.id || playlist.Id;
+        option.textContent = playlist.name || playlist.Name || "Без названия";
+        trackPlaylistSelect.appendChild(option);
+      });
+
+      trackPlaylistControls.hidden = false;
+    }
+
+    async function addTrackToPlaylist(trackId, playlistId) {
+      if (!trackId || !playlistId) {
+        setStatus("Выберите трек и плейлист.", true);
+        return;
+      }
+
+      try {
+        await apiFetch(`${playlistsEndpoint}/${playlistId}/tracks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ trackId })
+        });
+
+        selectedPlaylistId = playlistId;
+        await refreshAuthState();
+        setStatus("Трек добавлен в плейлист.");
+      } catch (error) {
+        setStatus(error.message || "Не удалось добавить трек.", true);
+      }
+    }
+
+    async function deletePlaylist(playlistId, name) {
+      if (!confirm(`Удалить плейлист "${name}"?`)) {
+        return;
+      }
+
+      try {
+        await apiFetch(`${playlistsEndpoint}/${playlistId}`, {
+          method: "DELETE"
+        });
+
+        if (String(selectedPlaylistId) === String(playlistId)) {
+          selectedPlaylistId = null;
+          playlistTracksTitle.textContent = "Треки";
+          renderPlaylistTracks([]);
+        }
+
+        await refreshAuthState();
+        setStatus("Плейлист удален.");
+      } catch (error) {
+        setStatus(error.message || "Не удалось удалить плейлист.", true);
+      }
+    }
+
+    async function apiFetch(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "include",
+        ...options
+      });
+
+      if (response.status === 401) {
+        renderGuestState();
+        throw new Error("Нужно войти через Google.");
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(normalizeTextResponse(errorText) || `Ошибка запроса: ${response.status}`);
+      }
+
+      return response;
+    }
+
+    async function getClientDeviceInfo() {
+      return {
+        name: navigator.userAgentData?.platform || navigator.platform || "Устройство"
+      };
+    }
+
+    function setCurrentLibraryTrack(trackId, title) {
+      currentLibraryTrackId = trackId || null;
+      currentLibraryTrackTitle = title || "";
+      renderTrackTitle(currentLibraryTrackTitle);
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function clearCurrentLibraryTrack() {
+      currentLibraryTrackId = null;
+      currentLibraryTrackTitle = "";
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function setUploadMode(mode) {
+      uploadMode = mode;
+      urlUploadTab.classList.toggle("active", mode === "url");
+      fileUploadTab.classList.toggle("active", mode === "file");
+      trackUrlInput.classList.toggle("active", mode === "url");
+      trackFileInput.classList.toggle("active", mode === "file");
+      pasteUrlButton.classList.toggle("hidden", mode !== "url");
+      updateSetTrackButton();
+      setControlsEnabled(Boolean(currentRoom));
+    }
+
+    function hasUploadSource() {
+      return uploadMode === "file"
+        ? Boolean(trackFileInput.files?.length)
+        : Boolean(trackUrlInput.value.trim());
+    }
+
+    function updateSetTrackButton() {
+      setTrackButton.disabled = !currentRoom || !hasUploadSource();
+      createPlaylistButton.disabled = !isAuthorized || !playlistNameInput.value.trim();
+    }
+
+    playlistNameInput.addEventListener("input", updateSetTrackButton);
+
     function updateConnectionState(text, stateClass) {
       connectionText.textContent = text;
       connectionDot.className = `dot ${stateClass}`;
@@ -2038,8 +1809,38 @@
       statusBox.classList.toggle("error", isError);
     }
 
+    function normalizeTextResponse(value) {
+      const text = value.trim();
+
+      if (!text) {
+        return "";
+      }
+
+      try {
+        const parsed = JSON.parse(text);
+        return typeof parsed === "string" ? parsed : text;
+      } catch {
+        return text;
+      }
+    }
+
+    function applyInitialTheme() {
+      const savedTheme = localStorage.getItem("unisonmusic-theme");
+      const theme = savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : "dark";
+      setTheme(theme);
+    }
+
+    function setTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("unisonmusic-theme", theme);
+      darkThemeButton.classList.toggle("active", theme === "dark");
+      lightThemeButton.classList.toggle("active", theme === "light");
+    }
+
     function escapeHtml(value) {
-      return value
+      return String(value ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
