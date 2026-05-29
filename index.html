@@ -518,7 +518,7 @@
     .player-dock {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.4fr);
       gap: 16px;
       align-items: center;
       padding: 16px;
@@ -534,9 +534,78 @@
       min-width: 0;
     }
 
-    .player {
-      width: min(620px, 42vw);
-      min-width: 320px;
+    .native-audio {
+      display: none;
+    }
+
+    .custom-player {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .player-button {
+      display: inline-grid;
+      place-items: center;
+      width: 46px;
+      min-height: 46px;
+      padding: 0;
+      border-radius: 8px;
+      background: var(--accent);
+    }
+
+    .player-button svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+    }
+
+    .player-main {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .player-time {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .player-range {
+      width: 100%;
+      height: 6px;
+      min-height: 6px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      accent-color: var(--accent);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 130px;
+      color: var(--muted);
+    }
+
+    .volume-control svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
+    .volume-control input {
+      min-height: 6px;
     }
 
     .countdown {
@@ -627,9 +696,14 @@
         grid-template-columns: 1fr;
       }
 
-      .player {
+      .custom-player {
         width: 100%;
-        min-width: 0;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .volume-control {
+        grid-column: 1 / -1;
+        width: 100%;
       }
     }
 
@@ -758,7 +832,25 @@
             <div id="nowPlayingTitle" class="playlist-title">Ничего не играет</div>
             <div id="countdown" class="countdown">Ожидание</div>
           </div>
-          <audio id="audio" class="player" preload="auto" controls></audio>
+          <div class="custom-player">
+            <button id="playerToggleButton" class="player-button" type="button" aria-label="Воспроизвести" disabled></button>
+            <div class="player-main">
+              <input id="playerProgress" class="player-range" type="range" min="0" max="1000" value="0" step="1" aria-label="Позиция трека" disabled>
+              <div class="player-time">
+                <span id="playerCurrentTime">0:00</span>
+                <span id="playerDuration">0:00</span>
+              </div>
+            </div>
+            <label class="volume-control" aria-label="Громкость">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M11 5 6 9H2v6h4l5 4V5Z"></path>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              <input id="playerVolume" class="player-range" type="range" min="0" max="1" value="1" step="0.01">
+            </label>
+          </div>
+          <audio id="audio" class="native-audio" preload="auto"></audio>
           <div id="status" class="status">Подключаемся к SignalR...</div>
         </section>
       </section>
@@ -814,6 +906,11 @@
     const playlistTracks = document.getElementById("playlistTracks");
     const nowPlayingTitle = document.getElementById("nowPlayingTitle");
     const countdown = document.getElementById("countdown");
+    const playerToggleButton = document.getElementById("playerToggleButton");
+    const playerProgress = document.getElementById("playerProgress");
+    const playerCurrentTime = document.getElementById("playerCurrentTime");
+    const playerDuration = document.getElementById("playerDuration");
+    const playerVolume = document.getElementById("playerVolume");
     const audio = document.getElementById("audio");
     const statusBox = document.getElementById("status");
     const uploadOverlay = document.getElementById("uploadOverlay");
