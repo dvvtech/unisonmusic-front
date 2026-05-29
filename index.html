@@ -173,28 +173,26 @@
       flex-wrap: wrap;
     }
 
-    .theme-toggle {
+    .theme-button {
       display: inline-grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 38px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
+      place-items: center;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-color: var(--line);
       background: var(--surface-strong);
+      color: var(--text);
     }
 
-    .theme-toggle button {
-      min-height: 36px;
-      border: 0;
-      border-radius: 0;
-      padding: 0 12px;
-      background: transparent;
-      color: var(--muted);
-    }
-
-    .theme-toggle button.active {
+    .theme-button:hover:not(:disabled) {
       background: var(--accent);
       color: #fff;
+    }
+
+    .theme-button svg {
+      width: 20px;
+      height: 20px;
+      display: block;
     }
 
     .auth-state {
@@ -660,9 +658,8 @@
         width: 100%;
       }
 
-      .theme-toggle,
-      .theme-toggle button {
-        width: auto;
+      .theme-button {
+        width: 40px;
       }
     }
   </style>
@@ -676,10 +673,7 @@
       </div>
 
       <div class="topbar-actions">
-        <div class="theme-toggle" aria-label="Тема">
-          <button id="darkThemeButton" type="button">Темная</button>
-          <button id="lightThemeButton" type="button">Светлая</button>
-        </div>
+        <button id="themeToggleButton" class="theme-button secondary" type="button" aria-label="Переключить тему"></button>
         <span id="authState" class="auth-state">Гость</span>
         <button id="loginButton" class="secondary" type="button">Войти</button>
         <button id="logoutButton" class="secondary" type="button" hidden>Выйти</button>
@@ -716,7 +710,6 @@
               <button id="fileUploadTab" class="upload-tab" type="button">Файл</button>
             </div>
             <div id="trackPlaylistControls" class="upload-tabs" hidden>
-              <select id="trackPlaylistSelect" aria-label="Плейлист для трека"></select>
               <button id="addCurrentTrackToPlaylistButton" class="secondary" type="button">В плейлист</button>
             </div>
             <div class="upload-fields">
@@ -796,8 +789,7 @@
     const loginButton = document.getElementById("loginButton");
     const logoutButton = document.getElementById("logoutButton");
     const authState = document.getElementById("authState");
-    const darkThemeButton = document.getElementById("darkThemeButton");
-    const lightThemeButton = document.getElementById("lightThemeButton");
+    const themeToggleButton = document.getElementById("themeToggleButton");
     const roomEntry = document.getElementById("roomEntry");
     const roomShell = document.getElementById("roomShell");
     const createRoomButton = document.getElementById("createRoomButton");
@@ -814,7 +806,6 @@
     const setTrackButton = document.getElementById("setTrackButton");
     const trackTitle = document.getElementById("trackTitle");
     const trackPlaylistControls = document.getElementById("trackPlaylistControls");
-    const trackPlaylistSelect = document.getElementById("trackPlaylistSelect");
     const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
     const playlistNameInput = document.getElementById("playlistNameInput");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
@@ -958,8 +949,12 @@
       }
     });
 
-    darkThemeButton.addEventListener("click", () => setTheme("dark"));
-    lightThemeButton.addEventListener("click", () => setTheme("light"));
+    themeToggleButton.addEventListener("click", () => {
+      const currentTheme = document.documentElement.dataset.theme === "light"
+        ? "light"
+        : "dark";
+      setTheme(currentTheme === "light" ? "dark" : "light");
+    });
 
     createRoomButton.addEventListener("click", async () => {
       isRoomCreator = true;
@@ -1047,7 +1042,7 @@
     });
 
     addCurrentTrackToPlaylistButton.addEventListener("click", async () => {
-      await addTrackToPlaylist(currentLibraryTrackId, trackPlaylistSelect.value);
+      await addTrackToPlaylist(currentLibraryTrackId, selectedPlaylistId);
     });
 
     audio.addEventListener("play", async () => {
@@ -1237,8 +1232,7 @@
       setTrackButton.disabled = !canUseRoom || !hasUploadSource();
       playlistNameInput.disabled = !canUseLibrary;
       createPlaylistButton.disabled = !canUseLibrary || !playlistNameInput.value.trim();
-      trackPlaylistSelect.disabled = !canUseLibrary;
-      addCurrentTrackToPlaylistButton.disabled = !canUseLibrary || !currentLibraryTrackId || !trackPlaylistSelect.value;
+      addCurrentTrackToPlaylistButton.disabled = !canUseLibrary || !currentLibraryTrackId || !selectedPlaylistId;
       audio.disabled = !canUseRoom || !audio.src;
     }
 
@@ -1565,6 +1559,8 @@
         selectedPlaylistId = userPlaylists[0].id || userPlaylists[0].Id;
       }
 
+      renderTrackPlaylistOptions();
+
       userPlaylists.forEach(playlist => {
         const playlistId = playlist.id || playlist.Id;
         const name = playlist.name || playlist.Name || "Без названия";
@@ -1611,6 +1607,8 @@
     async function selectPlaylist(playlistId, playlistName) {
       selectedPlaylistId = playlistId;
       playlistTracksTitle.textContent = playlistName;
+      renderTrackPlaylistOptions();
+      setControlsEnabled(Boolean(currentRoom));
       renderPlaylists();
       await loadPlaylistTracks(playlistId);
     }
@@ -1674,19 +1672,10 @@
     }
 
     function renderTrackPlaylistOptions() {
-      trackPlaylistSelect.innerHTML = "";
-
-      if (!isAuthorized || !userPlaylists.length) {
+      if (!isAuthorized || !selectedPlaylistId) {
         trackPlaylistControls.hidden = true;
         return;
       }
-
-      userPlaylists.forEach(playlist => {
-        const option = document.createElement("option");
-        option.value = playlist.id || playlist.Id;
-        option.textContent = playlist.name || playlist.Name || "Без названия";
-        trackPlaylistSelect.appendChild(option);
-      });
 
       trackPlaylistControls.hidden = false;
     }
@@ -1835,8 +1824,13 @@
     function setTheme(theme) {
       document.documentElement.dataset.theme = theme;
       localStorage.setItem("unisonmusic-theme", theme);
-      darkThemeButton.classList.toggle("active", theme === "dark");
-      lightThemeButton.classList.toggle("active", theme === "light");
+      themeToggleButton.innerHTML = theme === "dark"
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 7 9 9 0 1 1-9-7Z"></path></svg>';
+      themeToggleButton.setAttribute(
+        "aria-label",
+        theme === "dark" ? "Включить светлую тему" : "Включить темную тему");
+      themeToggleButton.title = theme === "dark" ? "Светлая тема" : "Темная тема";
     }
 
     function escapeHtml(value) {
