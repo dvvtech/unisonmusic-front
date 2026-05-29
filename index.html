@@ -432,6 +432,10 @@
       border-bottom: 1px solid var(--line);
     }
 
+    .track-item {
+      align-items: center;
+    }
+
     .playlist:last-child,
     .track-item:last-child,
     .participant:last-child {
@@ -495,7 +499,8 @@
     .participants-list {
       min-height: 0;
       overflow: auto;
-      border-left: 1px solid var(--line);
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: color-mix(in srgb, var(--surface), transparent 42%);
     }
 
