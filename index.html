@@ -1055,11 +1055,10 @@
         return;
       }
 
+      playbackCommandInProgress = true;
       suppressAudioEvents = true;
       audio.pause();
       suppressAudioEvents = false;
-
-      playbackCommandInProgress = true;
       playbackActive = true;
       setControlsEnabled(Boolean(currentRoom));
 
@@ -1079,7 +1078,7 @@
     });
 
     audio.addEventListener("pause", async () => {
-      if (suppressAudioEvents || !playbackActive || !currentRoom || audio.ended) {
+      if (suppressAudioEvents || playbackCommandInProgress || !playbackActive || !currentRoom || audio.ended) {
         return;
       }
 
