@@ -579,15 +579,43 @@
     }
 
     .player-range {
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       height: 6px;
       min-height: 6px;
       padding: 0;
       border: 0;
       border-radius: 999px;
-      accent-color: var(--accent);
-      background: transparent;
+      background: var(--surface-soft);
       cursor: pointer;
+      outline: none;
+    }
+
+    .player-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .player-range::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: none;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .player-range::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--surface-soft);
     }
 
     .volume-control {
@@ -833,7 +861,7 @@
             <div id="countdown" class="countdown">Ожидание</div>
           </div>
           <div class="custom-player">
-            <button id="playerToggleButton" class="player-button" type="button" aria-label="Воспроизвести" disabled></button>
+            <button id="playerToggleButton" class="player-button" type="button" aria-label="Воспроизвести" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21"></polygon></svg></button>
             <div class="player-main">
               <input id="playerProgress" class="player-range" type="range" min="0" max="1000" value="0" step="1" aria-label="Позиция трека" disabled>
               <div class="player-time">
@@ -1153,6 +1181,7 @@
       suppressAudioEvents = false;
       playbackActive = true;
       setControlsEnabled(Boolean(currentRoom));
+      updatePlayerButton();
 
       try {
         const resumePosition = pausedPositionSeconds ?? audio.currentTime ?? 0;
@@ -1163,6 +1192,7 @@
         if (!command) {
           playbackActive = false;
           setControlsEnabled(Boolean(currentRoom));
+          updatePlayerButton();
         }
       } finally {
         playbackCommandInProgress = false;
@@ -1183,6 +1213,59 @@
       pausedPositionSeconds = null;
       countdown.textContent = "Завершено";
       setControlsEnabled(Boolean(currentRoom));
+      updatePlayerButton();
+    });
+
+    playerToggleButton.addEventListener("click", async () => {
+      if (playbackCommandInProgress || !audio.src || !currentRoom) return;
+      if (playbackActive) {
+        if (!audio.paused) {
+          audio.pause();
+        } else {
+          const pos = pausedPositionSeconds ?? audio.currentTime ?? 0;
+          await invokeHub("PausePlayback", pos);
+          stopLocalPlayback(pos);
+        }
+      } else {
+        audio.play();
+      }
+      updatePlayerButton();
+    });
+
+    audio.addEventListener("timeupdate", () => {
+      if (!Number.isFinite(audio.duration)) return;
+      playerCurrentTime.textContent = formatTime(audio.currentTime);
+      playerDuration.textContent = formatTime(audio.duration);
+      playerProgress.value = Math.round((audio.currentTime / audio.duration) * 1000);
+      updateProgressFill(playerProgress, audio.currentTime / audio.duration);
+    });
+
+    audio.addEventListener("loadedmetadata", () => {
+      playerDuration.textContent = formatTime(audio.duration);
+      updatePlayerButton();
+      updateProgressFill(playerProgress, 0);
+    });
+
+    playerProgress.addEventListener("input", () => {
+      if (!Number.isFinite(audio.duration)) return;
+      if (playbackActive) {
+        playerProgress.value = Math.round((audio.currentTime / audio.duration) * 1000);
+        updateProgressFill(playerProgress, audio.currentTime / audio.duration);
+        return;
+      }
+      const newPosition = (playerProgress.value / 1000) * audio.duration;
+      audio.currentTime = newPosition;
+      playerCurrentTime.textContent = formatTime(newPosition);
+      if (pausedPositionSeconds !== null) {
+        pausedPositionSeconds = newPosition;
+      }
+      updateProgressFill(playerProgress, playerProgress.value / 1000);
+    });
+
+    playerVolume.addEventListener("input", () => {
+      audio.volume = parseFloat(playerVolume.value);
+      updateVolumeIcon();
+      updateProgressFill(playerVolume, playerVolume.value);
     });
 
     cancelUploadButton.addEventListener("click", () => {
@@ -1191,6 +1274,8 @@
       setStatus("Отменяем загрузку...");
     });
 
+    updateProgressFill(playerVolume, 1);
+    updatePlayerButton();
     applyInitialTheme();
     start();
     refreshAuthState().catch(() => renderGuestState());
@@ -1312,6 +1397,11 @@
       pausedPositionSeconds = null;
       countdown.textContent = "Ожидание";
       nowPlayingTitle.textContent = "Ничего не играет";
+      playerProgress.value = 0;
+      playerCurrentTime.textContent = "0:00";
+      playerDuration.textContent = "0:00";
+      updateProgressFill(playerProgress, 0);
+      updatePlayerButton();
       setControlsEnabled(false);
     }
 
@@ -1330,7 +1420,7 @@
       playlistNameInput.disabled = !canUseLibrary;
       createPlaylistButton.disabled = !canUseLibrary || !playlistNameInput.value.trim();
       addCurrentTrackToPlaylistButton.disabled = !canUseLibrary || !currentLibraryTrackId || !selectedPlaylistId;
-      audio.disabled = !canUseRoom || !audio.src;
+      updatePlayerButton();
     }
 
     async function uploadTrackFromUrl() {
@@ -1456,6 +1546,11 @@
       stopPlaybackCorrection();
       pausedPositionSeconds = null;
       playbackActive = false;
+      playerProgress.value = 0;
+      playerCurrentTime.textContent = "0:00";
+      playerDuration.textContent = "0:00";
+      updateProgressFill(playerProgress, 0);
+      updatePlayerButton();
       renderTrackTitle(title);
       setControlsEnabled(Boolean(currentRoom));
     }
@@ -1473,9 +1568,15 @@
 
       const startPosition = Math.max(0, Number(positionSeconds) || 0);
       setAudioPosition(startPosition);
+      if (Number.isFinite(audio.duration)) {
+        playerProgress.value = Math.round((startPosition / audio.duration) * 1000);
+        playerCurrentTime.textContent = formatTime(startPosition);
+        updateProgressFill(playerProgress, startPosition / audio.duration);
+      }
       pausedPositionSeconds = null;
       playbackActive = true;
       setControlsEnabled(Boolean(currentRoom));
+      updatePlayerButton();
 
       const startAtMs = new Date(startAt).getTime();
       const delay = Math.max(0, startAtMs - (Date.now() + clockOffsetMs));
@@ -1530,6 +1631,12 @@
       pausedPositionSeconds = targetPosition;
       playbackActive = false;
       setControlsEnabled(Boolean(currentRoom));
+      updatePlayerButton();
+      if (Number.isFinite(audio.duration)) {
+        playerProgress.value = Math.round((targetPosition / audio.duration) * 1000);
+        playerCurrentTime.textContent = formatTime(targetPosition);
+        updateProgressFill(playerProgress, targetPosition / audio.duration);
+      }
       countdown.textContent = "Остановлено";
       setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
     }
@@ -1928,6 +2035,41 @@
         "aria-label",
         theme === "dark" ? "Включить светлую тему" : "Включить темную тему");
       themeToggleButton.title = theme === "dark" ? "Светлая тема" : "Темная тема";
+    }
+
+    function updatePlayerButton() {
+      const isPlaying = playbackActive;
+      playerToggleButton.disabled = !audio.src || !currentRoom || playbackCommandInProgress;
+      playerToggleButton.setAttribute("aria-label", isPlaying ? "Пауза" : "Воспроизвести");
+      playerToggleButton.innerHTML = isPlaying
+        ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="3" width="4" height="18" rx="1"></rect><rect x="15" y="3" width="4" height="18" rx="1"></rect></svg>'
+        : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21"></polygon></svg>';
+      playerProgress.disabled = !Number.isFinite(audio.duration);
+    }
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+      const s = Math.floor(seconds);
+      const m = Math.floor(s / 60);
+      return `${m}:${String(s % 60).padStart(2, "0")}`;
+    }
+
+    function updateProgressFill(rangeElement, ratio) {
+      const pct = Math.max(0, Math.min(1, ratio)) * 100;
+      rangeElement.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--surface-soft) ${pct}%)`;
+    }
+
+    function updateVolumeIcon() {
+      const vol = audio.volume;
+      const svg = document.querySelector(".volume-control svg");
+      if (!svg) return;
+      if (vol === 0) {
+        svg.innerHTML = '<path d="M11 5 6 9H2v6h4l5 4V5Z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+      } else if (vol < 0.5) {
+        svg.innerHTML = '<path d="M11 5 6 9H2v6h4l5 4V5Z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+      } else {
+        svg.innerHTML = '<path d="M11 5 6 9H2v6h4l5 4V5Z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>';
+      }
     }
 
     function escapeHtml(value) {
