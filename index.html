@@ -742,9 +742,44 @@
 
     @media (max-width: 720px) {
       .topbar {
-        align-items: flex-start;
-        flex-direction: column;
+        flex-wrap: nowrap;
       }
+
+      .topbar-actions {
+        flex-wrap: nowrap;
+        width: auto;
+      }
+
+      .auth-state {
+        display: none;
+      }
+
+      .connection {
+        gap: 0;
+      }
+
+      .connection span:not(.dot) {
+        display: none;
+      }
+
+      .library-grid,
+      .upload-fields,
+      .upload-band {
+        grid-template-columns: 1fr;
+      }
+
+      .playlist-create {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: auto;
+      }
+
+      .theme-button {
+        width: 40px;
+      }
+    }
 
       .topbar-actions {
         justify-content: flex-start;
