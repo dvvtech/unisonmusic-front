@@ -173,10 +173,9 @@
     }
 
     .app {
-      height: 100vh;
-      height: 100dvh;
+      min-height: 100vh;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
     }
 
     .topbar {
@@ -293,12 +292,11 @@
 
     .main {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
       gap: 32px;
       width: min(1440px, 100%);
       margin: 0 auto;
       padding: 40px clamp(20px, 4vw, 48px) 48px;
-      min-height: 0;
     }
 
     .room-entry {
@@ -374,7 +372,6 @@
       grid-template-columns: minmax(0, 1fr) 320px;
       grid-template-rows: auto minmax(0, 1fr) auto;
       gap: 24px;
-      min-height: 0;
     }
 
     .room-shell[hidden],
