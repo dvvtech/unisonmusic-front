@@ -885,11 +885,28 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
       box-shadow: none;
+      transform: none;
+      outline: none;
+    }
+
+    .mobile-tab-bar button:hover:not(:disabled),
+    .mobile-tab-bar button:focus,
+    .mobile-tab-bar button:focus-visible,
+    .mobile-tab-bar button:active:not(:disabled) {
+      background: transparent;
+      color: var(--text);
+      box-shadow: none;
+      transform: none;
+      outline: none;
     }
 
     .mobile-tab-bar button.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
+    }
+
+    .mobile-tab-bar button.active:hover:not(:disabled) {
+      color: var(--accent);
     }
 
     #mobileTabUpload {
