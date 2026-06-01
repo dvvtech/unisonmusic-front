@@ -795,18 +795,6 @@
       white-space: nowrap;
     }
 
-    .status {
-      grid-column: 1 / -1;
-      min-height: 22px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .status.error {
-      color: var(--danger);
-    }
-
     .busy-overlay {
       position: fixed;
       inset: 0;
@@ -1155,7 +1143,6 @@
             </label>
           </div>
           <audio id="audio" class="native-audio" preload="auto"></audio>
-          <div id="status" class="status">Подключаемся к SignalR...</div>
         </section>
       </section>
     </main>
@@ -1216,7 +1203,6 @@
     const playerDuration = document.getElementById("playerDuration");
     const playerVolume = document.getElementById("playerVolume");
     const audio = document.getElementById("audio");
-    const statusBox = document.getElementById("status");
     const uploadOverlay = document.getElementById("uploadOverlay");
     const cancelUploadButton = document.getElementById("cancelUploadButton");
 
@@ -1267,12 +1253,10 @@
 
     connection.on("RoomJoined", snapshot => {
       renderRoom(snapshot);
-      setStatus("Вы в комнате.");
     });
 
     connection.on("RoomLeft", () => {
       resetRoom();
-      setStatus("Вы вышли из комнаты.");
     });
 
     connection.on("RoomUpdated", snapshot => {
@@ -1286,7 +1270,6 @@
     connection.on("TrackUpdated", snapshot => {
       renderRoom(snapshot);
       prepareAudio(snapshot.trackUrl, snapshot.trackTitle);
-      setStatus("Трек загружен у участников.");
     });
 
     connection.on("ReceiveStartTime", command => {
@@ -1308,14 +1291,12 @@
       setControlsEnabled(Boolean(currentRoom));
       await syncClock();
       startClockSync();
-      setStatus("Соединение восстановлено.");
     });
 
     connection.onclose(() => {
       updateConnectionState("Отключено", "disconnected");
       stopClockSync();
       setControlsEnabled(false);
-      setStatus("SignalR соединение закрыто.", true);
     });
 
     loginButton.addEventListener("click", async () => {
@@ -1339,7 +1320,6 @@
         window.location.href = authUrl;
       } catch (error) {
         loginButton.disabled = false;
-        setStatus(error.message || "Не удалось войти.", true);
       }
     });
 
@@ -1353,9 +1333,7 @@
         });
 
         renderGuestState();
-        setStatus("Вы вышли.");
       } catch (error) {
-        setStatus(error.message || "Не удалось выйти.", true);
       } finally {
         logoutButton.disabled = false;
       }
@@ -1407,16 +1385,13 @@
       try {
         const text = await navigator.clipboard.readText();
         if (!text) {
-          setStatus("Буфер обмена пуст.", true);
           return;
         }
 
         setUploadMode("url");
         trackUrlInput.value = text.trim();
         updateSetTrackButton();
-        setStatus("URL вставлен.");
       } catch {
-        setStatus("Нет доступа к буферу обмена. Вставьте ссылку вручную.", true);
       }
     });
 
@@ -1432,7 +1407,6 @@
     createPlaylistButton.addEventListener("click", async () => {
       const name = playlistNameInput.value.trim();
       if (!name) {
-        setStatus("Введите название плейлиста.", true);
         return;
       }
 
@@ -1447,9 +1421,7 @@
 
         playlistNameInput.value = "";
         await refreshAuthState();
-        setStatus(`Плейлист "${name}" создан.`);
       } catch (error) {
-        setStatus(error.message || "Не удалось создать плейлист.", true);
       }
     });
 
@@ -1559,7 +1531,6 @@
     cancelUploadButton.addEventListener("click", () => {
       uploadAbortController?.abort();
       setTrackUploadInProgress(false);
-      setStatus("Отменяем загрузку...");
     });
 
     updateProgressFill(playerVolume, 1);
@@ -1575,10 +1546,8 @@
         setControlsEnabled(Boolean(currentRoom));
         await syncClock();
         startClockSync();
-        setStatus("SignalR подключен.");
       } catch (error) {
         updateConnectionState("Ошибка", "disconnected");
-        setStatus(`Не удалось подключиться: ${error.message}`, true);
         setTimeout(start, 3000);
       }
     }
@@ -1587,7 +1556,6 @@
       try {
         return await connection.invoke(method, ...args);
       } catch (error) {
-        setStatus(error.message || "Ошибка SignalR запроса.", true);
         return null;
       }
     }
@@ -1714,23 +1682,16 @@
     async function uploadTrackFromUrl() {
       const url = trackUrlInput.value.trim();
       if (!url) {
-        setStatus("Укажите URL трека.", true);
         return;
       }
 
       uploadAbortController = new AbortController();
       setTrackUploadInProgress(true);
-      setStatus("Загружаем музыку по URL...");
 
       try {
         const uploadedTrack = await requestTrackFromUrl(url, uploadAbortController.signal);
         await applyUploadedTrack(uploadedTrack, url);
       } catch (error) {
-        if (error.name === "AbortError") {
-          setStatus("Загрузка отменена.", true);
-        } else {
-          setStatus(error.message || "Не удалось загрузить трек.", true);
-        }
       } finally {
         uploadAbortController = null;
         setTrackUploadInProgress(false);
@@ -1740,23 +1701,16 @@
     async function uploadTrackFromFile() {
       const file = trackFileInput.files?.[0];
       if (!file) {
-        setStatus("Выберите аудиофайл.", true);
         return;
       }
 
       uploadAbortController = new AbortController();
       setTrackUploadInProgress(true);
-      setStatus("Загружаем файл...");
 
       try {
         const uploadedTrack = await requestTrackFromFile(file, uploadAbortController.signal);
         await applyUploadedTrack(uploadedTrack, file.name);
       } catch (error) {
-        if (error.name === "AbortError") {
-          setStatus("Загрузка отменена.", true);
-        } else {
-          setStatus(error.message || "Не удалось загрузить файл.", true);
-        }
       } finally {
         uploadAbortController = null;
         setTrackUploadInProgress(false);
@@ -1803,9 +1757,6 @@
       prepareAudio(s3Url, title);
 
       const snapshot = await invokeHub("SetTrack", s3Url, title, sourceUrl, trackId);
-      if (snapshot) {
-        setStatus("Трек готов к воспроизведению.");
-      }
 
       if (isAuthorized && trackId) {
         await refreshAuthState();
@@ -1869,7 +1820,6 @@
       const startAtMs = new Date(startAt).getTime();
       const delay = Math.max(0, startAtMs - (Date.now() + clockOffsetMs));
 
-      setStatus(`Старт назначен на ${new Date(startAt).toLocaleTimeString("ru-RU", { timeZone: "UTC" })} UTC.`);
       renderCountdown(delay);
 
       countdownTimer = setInterval(() => {
@@ -1891,13 +1841,11 @@
           suppressAudioEvents = false;
 
           startPlaybackCorrection(startAtMs, startPosition);
-          setStatus("Воспроизведение запущено.");
         } catch (error) {
           suppressAudioEvents = false;
           stopPlaybackCorrection();
           playbackActive = false;
           setControlsEnabled(Boolean(currentRoom));
-          setStatus(`Браузер заблокировал запуск: ${error.message}`, true);
         }
       }, delay);
     }
@@ -1926,7 +1874,6 @@
         updateProgressFill(playerProgress, targetPosition / audio.duration);
       }
       countdown.textContent = "Остановлено";
-      setStatus(`Воспроизведение остановлено на ${targetPosition.toFixed(1)} сек.`);
     }
 
     function startPlaybackCorrection(startAtMs, startPositionSeconds) {
@@ -2017,7 +1964,6 @@
         setControlsEnabled(Boolean(currentRoom));
       } catch (error) {
         renderGuestState();
-        setStatus(error.message || "Не удалось проверить авторизацию.", true);
       }
     }
 
@@ -2092,7 +2038,7 @@
 
       const selected = userPlaylists.find(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId));
       if (selected) {
-        loadPlaylistTracks(selectedPlaylistId).catch(error => setStatus(error.message, true));
+        loadPlaylistTracks(selectedPlaylistId).catch(() => {});
       }
     }
 
@@ -2150,7 +2096,6 @@
 
         li.querySelector("[data-track-id]").addEventListener("click", async () => {
           if (!s3Url) {
-            setStatus("У трека нет S3 URL.", true);
             return;
           }
 
@@ -2174,7 +2119,6 @@
 
     async function addTrackToPlaylist(trackId, playlistId) {
       if (!trackId || !playlistId) {
-        setStatus("Выберите трек и плейлист.", true);
         return;
       }
 
@@ -2189,9 +2133,7 @@
 
         selectedPlaylistId = playlistId;
         await refreshAuthState();
-        setStatus("Трек добавлен в плейлист.");
       } catch (error) {
-        setStatus(error.message || "Не удалось добавить трек.", true);
       }
     }
 
@@ -2212,9 +2154,7 @@
         }
 
         await refreshAuthState();
-        setStatus("Плейлист удален.");
       } catch (error) {
-        setStatus(error.message || "Не удалось удалить плейлист.", true);
       }
     }
 
@@ -2283,11 +2223,6 @@
     function updateConnectionState(text, stateClass) {
       connectionText.textContent = text;
       connectionDot.className = `dot ${stateClass}`;
-    }
-
-    function setStatus(message, isError = false) {
-      statusBox.textContent = message;
-      statusBox.classList.toggle("error", isError);
     }
 
     function normalizeTextResponse(value) {
