@@ -175,7 +175,8 @@
     }
 
     .app {
-      min-height: 100vh;
+      height: 100vh;
+      height: 100dvh;
       display: grid;
       grid-template-rows: auto 1fr;
     }
@@ -299,6 +300,8 @@
       width: min(1440px, 100%);
       margin: 0 auto;
       padding: 40px clamp(20px, 4vw, 48px) 48px;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .room-entry {
@@ -374,6 +377,7 @@
       grid-template-columns: minmax(0, 1fr) 320px;
       grid-template-rows: auto minmax(0, 1fr) auto;
       gap: 24px;
+      padding-bottom: 120px;
     }
 
     .room-shell[hidden],
@@ -660,6 +664,12 @@
       border-radius: 16px;
       background: linear-gradient(135deg, var(--surface) 0%, var(--surface-soft) 100%);
       box-shadow: var(--shadow-lg);
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1440px, calc(100% - clamp(40px, 8vw, 96px)));
+      z-index: 15;
     }
 
     .player-meta {
@@ -952,10 +962,17 @@
         display: none;
         grid-column: 1 !important;
         grid-row: auto !important;
+        min-height: 0;
       }
 
       .mobile-tab-panel.active {
-        display: block;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .mobile-tab-panel.active > * {
+        flex: 1;
+        min-height: 0;
       }
 
       .upload-band {
