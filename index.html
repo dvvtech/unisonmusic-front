@@ -556,6 +556,10 @@
       flex: 0 0 auto;
     }
 
+    .playlist-select {
+      display: none;
+    }
+
     .list-panel {
       min-height: 0;
       overflow: auto;
@@ -1030,9 +1034,24 @@
       .tracks-column {
         display: flex;
         flex-direction: column;
-        flex: 1 1 0;
         min-height: 0;
         overflow: hidden;
+      }
+
+      .library-column {
+        flex: 0 0 auto;
+      }
+
+      .tracks-column {
+        flex: 1 1 0;
+      }
+
+      .playlist-select {
+        display: block;
+      }
+
+      .playlist-list-panel {
+        display: none;
       }
 
       .list-panel {
@@ -1117,7 +1136,8 @@
                 <div class="playlist-create">
                   <button id="createPlaylistButton" class="secondary playlist-create-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg><span>Новый</span></button>
                 </div>
-                <div class="list-panel">
+                <select id="playlistSelect" class="playlist-select" aria-label="Выберите плейлист"></select>
+                <div class="list-panel playlist-list-panel">
                   <ul id="playlists" class="playlists"></ul>
                 </div>
               </section>
@@ -1239,6 +1259,7 @@
     const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
+    const playlistSelect = document.getElementById("playlistSelect");
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
     const playlistTracks = document.getElementById("playlistTracks");
     const nowPlayingTitle = document.getElementById("nowPlayingTitle");
@@ -1456,6 +1477,15 @@
 
     createPlaylistButton.addEventListener("click", () => {
       openPlaylistDialog();
+    });
+
+    playlistSelect.addEventListener("change", () => {
+      const playlist = userPlaylists.find(item => String(item.id || item.Id) === String(playlistSelect.value));
+      if (!playlist) {
+        return;
+      }
+
+      selectPlaylist(playlist.id || playlist.Id, playlist.name || playlist.Name || "Без названия");
     });
 
     playlistDialogForm.addEventListener("submit", async event => {
@@ -2048,15 +2078,17 @@
       setControlsEnabled(Boolean(currentRoom));
     }
 
-    function renderPlaylists() {
+    function renderPlaylists({ loadTracks = true } = {}) {
       playlists.innerHTML = "";
 
       if (!isAuthorized) {
+        renderPlaylistSelect();
         playlists.innerHTML = '<li class="empty-state">Войдите, чтобы хранить плейлисты и треки.</li>';
         return;
       }
 
       if (!userPlaylists.length) {
+        renderPlaylistSelect();
         playlists.innerHTML = '<li class="empty-state">Плейлистов пока нет.</li>';
         return;
       }
@@ -2065,6 +2097,7 @@
         selectedPlaylistId = userPlaylists[0].id || userPlaylists[0].Id;
       }
 
+      renderPlaylistSelect();
       renderTrackPlaylistOptions();
 
       userPlaylists.forEach(playlist => {
@@ -2105,9 +2138,37 @@
       });
 
       const selected = userPlaylists.find(playlist => String(playlist.id || playlist.Id) === String(selectedPlaylistId));
-      if (selected) {
+      if (selected && loadTracks) {
         loadPlaylistTracks(selectedPlaylistId).catch(() => {});
       }
+    }
+
+    function renderPlaylistSelect() {
+      playlistSelect.innerHTML = "";
+      playlistSelect.disabled = !isAuthorized || !userPlaylists.length;
+
+      if (!isAuthorized) {
+        const option = document.createElement("option");
+        option.textContent = "Войдите, чтобы выбрать плейлист";
+        playlistSelect.appendChild(option);
+        return;
+      }
+
+      if (!userPlaylists.length) {
+        const option = document.createElement("option");
+        option.textContent = "Плейлистов пока нет";
+        playlistSelect.appendChild(option);
+        return;
+      }
+
+      userPlaylists.forEach(playlist => {
+        const playlistId = playlist.id || playlist.Id;
+        const option = document.createElement("option");
+        option.value = playlistId;
+        option.textContent = playlist.name || playlist.Name || "Без названия";
+        option.selected = String(playlistId) === String(selectedPlaylistId);
+        playlistSelect.appendChild(option);
+      });
     }
 
     async function selectPlaylist(playlistId, playlistName) {
@@ -2115,7 +2176,7 @@
       playlistTracksTitle.textContent = playlistName;
       renderTrackPlaylistOptions();
       setControlsEnabled(Boolean(currentRoom));
-      renderPlaylists();
+      renderPlaylists({ loadTracks: false });
       await loadPlaylistTracks(playlistId);
     }
 
