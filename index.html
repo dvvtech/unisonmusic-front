@@ -532,9 +532,20 @@
     }
 
     .playlist-create {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .playlist-create-button {
+      display: inline-flex;
+      align-items: center;
       gap: 8px;
+    }
+
+    .playlist-create-button svg {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
     }
 
     .list-panel {
@@ -815,6 +826,16 @@
       text-align: center;
     }
 
+    .playlist-dialog {
+      text-align: left;
+    }
+
+    .playlist-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
     .busy-ring {
       width: 44px;
       height: 44px;
@@ -1009,10 +1030,6 @@
         min-height: 0;
       }
 
-      .playlist-create {
-        grid-template-columns: 1fr;
-      }
-
       button {
         width: auto;
       }
@@ -1087,8 +1104,7 @@
                   <h2>Плейлисты</h2>
                 </div>
                 <div class="playlist-create">
-                  <input id="playlistNameInput" maxlength="128" placeholder="Название плейлиста">
-                  <button id="createPlaylistButton" class="secondary" type="button">Создать</button>
+                  <button id="createPlaylistButton" class="secondary playlist-create-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg><span>Новый</span></button>
                 </div>
                 <div class="list-panel">
                   <ul id="playlists" class="playlists"></ul>
@@ -1165,6 +1181,18 @@
     </div>
   </div>
 
+  <div id="playlistDialogOverlay" class="busy-overlay" hidden>
+    <form id="playlistDialogForm" class="busy-dialog playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="playlistDialogTitle">
+      <p id="playlistDialogTitle" class="busy-title">Новый плейлист</p>
+      <p class="busy-text">Введите название плейлиста.</p>
+      <input id="playlistDialogInput" maxlength="128" autocomplete="off" placeholder="Название плейлиста" aria-label="Название плейлиста">
+      <div class="playlist-dialog-actions">
+        <button id="cancelPlaylistDialogButton" class="secondary" type="button">Отмена</button>
+        <button id="submitPlaylistDialogButton" type="submit">Создать</button>
+      </div>
+    </form>
+  </div>
+
   <script>
     const apiBaseUrl = "https://api.unisonmusic.ru";
     const hubUrl = `${apiBaseUrl}/hubs/music`;
@@ -1198,7 +1226,6 @@
     const trackTitle = document.getElementById("trackTitle");
     const trackPlaylistControls = document.getElementById("trackPlaylistControls");
     const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
-    const playlistNameInput = document.getElementById("playlistNameInput");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
@@ -1212,6 +1239,11 @@
     const audio = document.getElementById("audio");
     const uploadOverlay = document.getElementById("uploadOverlay");
     const cancelUploadButton = document.getElementById("cancelUploadButton");
+    const playlistDialogOverlay = document.getElementById("playlistDialogOverlay");
+    const playlistDialogForm = document.getElementById("playlistDialogForm");
+    const playlistDialogInput = document.getElementById("playlistDialogInput");
+    const cancelPlaylistDialogButton = document.getElementById("cancelPlaylistDialogButton");
+    const submitPlaylistDialogButton = document.getElementById("submitPlaylistDialogButton");
 
     document.querySelectorAll(".mobile-tab-bar button").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1411,11 +1443,19 @@
       await uploadTrackFromUrl();
     });
 
-    createPlaylistButton.addEventListener("click", async () => {
-      const name = playlistNameInput.value.trim();
+    createPlaylistButton.addEventListener("click", () => {
+      openPlaylistDialog();
+    });
+
+    playlistDialogForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const name = playlistDialogInput.value.trim();
       if (!name) {
+        playlistDialogInput.focus();
         return;
       }
+
+      submitPlaylistDialogButton.disabled = true;
 
       try {
         await apiFetch(playlistsEndpoint, {
@@ -1426,9 +1466,27 @@
           body: JSON.stringify({ name })
         });
 
-        playlistNameInput.value = "";
+        closePlaylistDialog();
         await refreshAuthState();
       } catch (error) {
+      } finally {
+        submitPlaylistDialogButton.disabled = false;
+      }
+    });
+
+    cancelPlaylistDialogButton.addEventListener("click", () => {
+      closePlaylistDialog();
+    });
+
+    playlistDialogOverlay.addEventListener("click", event => {
+      if (event.target === playlistDialogOverlay) {
+        closePlaylistDialog();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !playlistDialogOverlay.hidden) {
+        closePlaylistDialog();
       }
     });
 
@@ -1673,8 +1731,7 @@
       trackFileInput.disabled = !canUseRoom || uploadMode !== "file";
       pasteUrlButton.disabled = !canUseRoom || uploadMode !== "url";
       setTrackButton.disabled = !canUseRoom || !hasUploadSource();
-      playlistNameInput.disabled = !canUseLibrary;
-      createPlaylistButton.disabled = !canUseLibrary || !playlistNameInput.value.trim();
+      createPlaylistButton.disabled = !canUseLibrary;
       addCurrentTrackToPlaylistButton.disabled = !canUseLibrary || !currentLibraryTrackId || !selectedPlaylistId;
       updatePlayerButton();
     }
@@ -2214,10 +2271,36 @@
 
     function updateSetTrackButton() {
       setTrackButton.disabled = !currentRoom || !hasUploadSource();
-      createPlaylistButton.disabled = !isAuthorized || !playlistNameInput.value.trim();
+      createPlaylistButton.disabled = !currentRoom || !isAuthorized;
     }
 
-    playlistNameInput.addEventListener("input", updateSetTrackButton);
+    function getNextPlaylistName() {
+      const baseName = "Новый плейлист";
+      const existingNames = new Set(userPlaylists.map(playlist => playlist.name || playlist.Name));
+
+      if (!existingNames.has(baseName)) {
+        return baseName;
+      }
+
+      let index = 2;
+      while (existingNames.has(`${baseName} ${index}`)) {
+        index += 1;
+      }
+
+      return `${baseName} ${index}`;
+    }
+
+    function openPlaylistDialog() {
+      playlistDialogInput.value = getNextPlaylistName();
+      playlistDialogOverlay.hidden = false;
+      playlistDialogInput.focus();
+      playlistDialogInput.select();
+    }
+
+    function closePlaylistDialog() {
+      playlistDialogOverlay.hidden = true;
+      createPlaylistButton.focus();
+    }
 
     function updateConnectionState(text, stateClass) {
       connectionText.textContent = text;
