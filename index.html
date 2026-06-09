@@ -960,12 +960,34 @@
 
     @media (max-width: 720px) {
       .topbar {
+        gap: 10px;
         flex-wrap: nowrap;
+        min-width: 0;
+        padding: 12px 14px;
+      }
+
+      .brand {
+        min-width: 0;
+        gap: 8px;
+        font-size: 18px;
+      }
+
+      .brand span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .topbar-actions {
+        flex: 0 0 auto;
+        gap: 8px;
         flex-wrap: nowrap;
         width: auto;
+      }
+
+      .topbar-actions button:not(.theme-button) {
+        min-height: 38px;
+        padding: 0 12px;
       }
 
       .auth-state {
@@ -974,10 +996,15 @@
 
       .connection {
         gap: 0;
+        padding: 6px 10px;
       }
 
       .connection span:not(.dot) {
         display: none;
+      }
+
+      .main {
+        padding: 28px 16px 40px;
       }
 
       .mobile-tab-bar {
@@ -989,6 +1016,26 @@
       .room-shell {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto minmax(0, 1fr) auto;
+      }
+
+      .room-strip {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .room-strip > div {
+        min-width: 0;
+      }
+
+      .room-code {
+        font-size: clamp(22px, 7vw, 30px);
+      }
+
+      #leaveRoomButton {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 0 12px;
       }
 
       .mobile-tab-panel {
