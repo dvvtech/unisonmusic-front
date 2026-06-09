@@ -481,8 +481,14 @@
     .upload-fields {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) auto auto;
+      grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(112px, auto));
       gap: 10px;
+      min-width: 0;
+    }
+
+    .upload-fields button {
+      min-width: 0;
+      padding-inline: 14px;
     }
 
     .file-field {
@@ -959,6 +965,20 @@
     @media (max-width: 980px) {
       .room-shell {
         grid-template-columns: 1fr;
+      }
+
+      .upload-fields {
+        grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+      }
+
+      .url-field,
+      .file-field {
+        grid-column: 1 / -1;
+      }
+
+      #pasteUrlButton,
+      #setTrackButton {
+        width: 100%;
       }
 
       .participants-list {
