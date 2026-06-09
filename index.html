@@ -431,6 +431,7 @@
       display: grid;
       grid-template-rows: minmax(0, 1fr);
       gap: 20px;
+      height: 100%;
       min-height: 0;
       min-width: 0;
     }
@@ -573,7 +574,9 @@
 
     .list-panel {
       min-height: 0;
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       border: 1px solid var(--line);
       border-radius: 14px;
       background: var(--surface);
@@ -1128,7 +1131,8 @@
 
       .list-panel {
         flex: 1 1 0;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
         min-height: 0;
       }
 
