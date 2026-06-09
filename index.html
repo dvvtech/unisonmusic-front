@@ -420,6 +420,13 @@
       font-size: 14px;
     }
 
+    .leave-room-icon {
+      display: none;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
     .library {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
@@ -1020,7 +1027,7 @@
 
       .room-strip {
         align-items: flex-start;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 12px;
       }
 
@@ -1034,8 +1041,19 @@
 
       #leaveRoomButton {
         flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 38px;
         min-height: 38px;
-        padding: 0 12px;
+        padding: 0;
+      }
+
+      .leave-room-icon {
+        display: block;
+      }
+
+      .leave-room-label {
+        display: none;
       }
 
       .mobile-tab-panel {
@@ -1164,7 +1182,7 @@
             <div id="roomCode" class="room-code">Комната <span>---</span></div>
             <div id="roomMeta" class="room-meta">Комната еще не выбрана.</div>
           </div>
-          <button id="leaveRoomButton" class="secondary" type="button">Выйти из комнаты</button>
+          <button id="leaveRoomButton" class="secondary" type="button" aria-label="Выйти из комнаты"><svg class="leave-room-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><span class="leave-room-label">Выйти из комнаты</span></button>
         </div>
 
         <div class="mobile-tab-bar">
