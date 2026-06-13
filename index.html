@@ -1080,6 +1080,7 @@
         display: flex;
         grid-column: 1 / -1;
         border-bottom: 1px solid var(--line);
+        margin-top: -6px;
       }
 
       .room-shell {
@@ -1088,30 +1089,49 @@
       }
 
       .room-strip {
-        align-items: flex-start;
+        align-items: center;
         flex-wrap: nowrap;
-        gap: 12px;
+        gap: 6px;
+        min-height: 0;
+        padding: 2px 0 4px;
+        border-bottom-width: 0;
+        margin-top: -15px;
       }
 
       .room-strip > div {
         min-width: 0;
+        line-height: 1.1;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
       }
 
       .room-code {
-        font-size: clamp(22px, 7vw, 30px);
+        font-size: clamp(11px, 3.5vw, 15px);
+        gap: 6px;
+        line-height: 1;
+      }
+
+      .room-meta {
+        font-size: 7px;
+        line-height: 1;
+        margin-top: 0;
+        white-space: nowrap;
       }
 
       #leaveRoomButton {
         flex: 0 0 auto;
         display: inline-grid;
         place-items: center;
-        width: 38px;
-        min-height: 38px;
+        width: 26px;
+        min-height: 26px;
         padding: 0;
       }
 
       .leave-room-icon {
         display: block;
+        width: 12px;
+        height: 12px;
       }
 
       .leave-room-label {
