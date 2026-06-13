@@ -574,6 +574,38 @@
       flex: 0 0 auto;
     }
 
+    .playlist-select-row {
+      display: none;
+    }
+
+    .playlist-select-row select {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .playlist-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      min-height: 42px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 20px;
+      letter-spacing: 2px;
+      flex: 0 0 auto;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .playlist-menu-btn:hover {
+      background: var(--surface-soft);
+      border-color: var(--line-strong);
+    }
+
     .playlist-select {
       display: none;
     }
@@ -1145,6 +1177,22 @@
         display: block;
       }
 
+      .library-grid:not(.show-playlist-menu) .library-column > .section-heading,
+      .library-grid:not(.show-playlist-menu) .library-column > .playlist-create {
+        display: none;
+      }
+
+      .library-grid.show-playlist-menu .tracks-column {
+        display: none !important;
+      }
+
+      .playlist-select-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+      }
+
       .playlist-list-panel {
         display: none;
       }
@@ -1232,7 +1280,10 @@
                 <div class="playlist-create">
                   <button id="createPlaylistButton" class="secondary playlist-create-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg><span>Новый</span></button>
                 </div>
-                <select id="playlistSelect" class="playlist-select" aria-label="Выберите плейлист"></select>
+                <div class="playlist-select-row">
+                  <select id="playlistSelect" class="playlist-select" aria-label="Выберите плейлист"></select>
+                  <button id="playlistMenuButton" class="playlist-menu-btn" type="button" aria-label="Меню плейлистов">⋮</button>
+                </div>
                 <div class="list-panel playlist-list-panel">
                   <ul id="playlists" class="playlists"></ul>
                 </div>
@@ -1356,6 +1407,7 @@
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
     const playlistSelect = document.getElementById("playlistSelect");
+    const playlistMenuButton = document.getElementById("playlistMenuButton");
     const playlistTracksTitle = document.getElementById("playlistTracksTitle");
     const playlistTracks = document.getElementById("playlistTracks");
     const nowPlayingTitle = document.getElementById("nowPlayingTitle");
@@ -1582,6 +1634,11 @@
       }
 
       selectPlaylist(playlist.id || playlist.Id, playlist.name || playlist.Name || "Без названия");
+    });
+
+    playlistMenuButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.querySelector(".library-grid").classList.toggle("show-playlist-menu");
     });
 
     playlistDialogForm.addEventListener("submit", async event => {
