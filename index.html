@@ -1198,7 +1198,8 @@
       }
 
       .library-grid:not(.show-playlist-menu) .library-column > .section-heading,
-      .library-grid:not(.show-playlist-menu) .library-column > .playlist-create {
+      .library-grid:not(.show-playlist-menu) .library-column > .playlist-create,
+      .library-grid:not(.show-playlist-menu) .library-column > .add-to-playlist-btn {
         display: none;
       }
 
@@ -1304,6 +1305,7 @@
                   <select id="playlistSelect" class="playlist-select" aria-label="Выберите плейлист"></select>
                   <button id="playlistMenuButton" class="playlist-menu-btn" type="button" aria-label="Меню плейлистов">⋮</button>
                 </div>
+                <button id="addCurrentTrackToPlaylistButton" class="secondary add-to-playlist-btn" type="button">В плейлист</button>
                 <div class="list-panel playlist-list-panel">
                   <ul id="playlists" class="playlists"></ul>
                 </div>
@@ -1326,9 +1328,6 @@
             <div class="upload-tabs" role="tablist" aria-label="Способ добавления музыки">
               <button id="urlUploadTab" class="upload-tab active" type="button">URL</button>
               <button id="fileUploadTab" class="upload-tab" type="button">Файл</button>
-            </div>
-            <div id="trackPlaylistControls" class="upload-tabs" hidden>
-              <button id="addCurrentTrackToPlaylistButton" class="secondary" type="button">В плейлист</button>
             </div>
             <div class="upload-fields">
               <input id="trackUrlInput" class="url-field active" type="url" placeholder="URL музыки">
@@ -1422,7 +1421,6 @@
     const pasteUrlButton = document.getElementById("pasteUrlButton");
     const setTrackButton = document.getElementById("setTrackButton");
     const trackTitle = document.getElementById("trackTitle");
-    const trackPlaylistControls = document.getElementById("trackPlaylistControls");
     const addCurrentTrackToPlaylistButton = document.getElementById("addCurrentTrackToPlaylistButton");
     const createPlaylistButton = document.getElementById("createPlaylistButton");
     const playlists = document.getElementById("playlists");
@@ -2411,11 +2409,11 @@
 
     function renderTrackPlaylistOptions() {
       if (!isAuthorized || !selectedPlaylistId) {
-        trackPlaylistControls.hidden = true;
+        addCurrentTrackToPlaylistButton.hidden = true;
         return;
       }
 
-      trackPlaylistControls.hidden = false;
+      addCurrentTrackToPlaylistButton.hidden = false;
     }
 
     async function addTrackToPlaylist(trackId, playlistId) {
