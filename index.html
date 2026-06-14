@@ -375,7 +375,7 @@
       min-height: 0;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 320px;
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       gap: 24px;
       padding-bottom: 120px;
     }
@@ -385,15 +385,12 @@
       display: none;
     }
 
-    .room-strip {
-      grid-column: 1 / -1;
+    .room-info {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      min-height: 60px;
-      padding: 0 0 20px;
-      border-bottom: 1px solid var(--line);
+      gap: 12px;
+      padding: 0 4px;
+      flex-wrap: wrap;
     }
 
     .room-code {
@@ -537,9 +534,12 @@
       grid-template-rows: auto auto minmax(0, 1fr);
     }
 
-    .tracks-column,
-    .participants-column {
+    .tracks-column {
       grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .participants-column {
+      grid-template-rows: auto auto minmax(0, 1fr);
     }
 
     .section-heading {
@@ -1091,25 +1091,7 @@
 
       .room-shell {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto minmax(0, 1fr) auto;
-      }
-
-      .room-strip {
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 6px;
-        min-height: 0;
-        padding: 2px 0 4px;
-        border-bottom-width: 0;
-        margin-top: -15px;
-      }
-
-      .room-strip > div {
-        min-width: 0;
-        line-height: 1.1;
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
       }
 
       .room-code {
@@ -1283,14 +1265,6 @@
       </section>
 
       <section id="roomShell" class="room-shell" hidden>
-        <div class="room-strip">
-          <div>
-            <div id="roomCode" class="room-code">Комната <span>---</span></div>
-            <div id="roomMeta" class="room-meta">Комната еще не выбрана.</div>
-          </div>
-          <button id="leaveRoomButton" class="secondary" type="button" aria-label="Выйти из комнаты"><svg class="leave-room-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><span class="leave-room-label">Выйти из комнаты</span></button>
-        </div>
-
         <div class="mobile-tab-bar">
           <button type="button" data-tab="music" class="active">Музыка</button>
           <button type="button" data-tab="upload">Добавить</button>
@@ -1349,6 +1323,11 @@
           <aside class="participants-column" aria-label="Участники">
             <div class="section-heading">
               <h2>Участники</h2>
+            </div>
+            <div class="room-info">
+              <div id="roomCode" class="room-code">Комната <span>---</span></div>
+              <div id="roomMeta" class="room-meta">Комната еще не выбрана.</div>
+              <button id="leaveRoomButton" class="secondary" type="button" aria-label="Выйти из комнаты"><svg class="leave-room-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><span class="leave-room-label">Выйти из комнаты</span></button>
             </div>
             <ul id="participants" class="participants-list"></ul>
           </aside>
