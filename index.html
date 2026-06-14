@@ -510,6 +510,9 @@
       font-size: 13px;
       min-height: 21px;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .library-grid {
@@ -661,6 +664,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      min-width: 0;
     }
 
     .playlist-title,
@@ -671,6 +675,8 @@
       white-space: nowrap;
       font-weight: 600;
       font-size: 14px;
+      min-width: 0;
+      flex: 1 1 0;
     }
 
     .meta {
