@@ -1576,6 +1576,11 @@
       isRoomCreator = true;
       autoJoinCode = "";
       await invokeHub("CreateRoom", await getClientDeviceInfo());
+
+      document.querySelectorAll(".mobile-tab-bar button").forEach(b => b.classList.remove("active"));
+      document.querySelector('[data-tab="participants"]').classList.add("active");
+      document.querySelectorAll(".mobile-tab-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("mobileTabParticipants").classList.add("active");
     });
 
     roomCodeInput.addEventListener("input", async () => {
