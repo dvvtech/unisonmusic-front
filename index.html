@@ -493,10 +493,39 @@
     }
 
     .file-field {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
     }
 
-    .file-field.active,
+    .file-select-button {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .file-select-button.active {
+      display: flex;
+    }
+
+    .file-select-button svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .file-select-button.selected {
+      background: var(--bg-elevated);
+      border-color: var(--accent);
+    }
+
     .url-field.active {
       display: block;
     }
@@ -1322,6 +1351,7 @@
             <div class="upload-fields">
               <input id="trackUrlInput" class="url-field active" type="url" placeholder="URL музыки">
               <input id="trackFileInput" class="file-field" type="file" accept="audio/*">
+              <button id="fileSelectButton" class="secondary file-select-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>Выберите файл</span></button>
               <button id="pasteUrlButton" class="secondary" type="button">Вставить</button>
               <button id="setTrackButton" type="button" disabled>Загрузить</button>
               <div id="trackTitle" class="track-title">Трек еще не выбран.</div>
@@ -1413,6 +1443,7 @@
     const fileUploadTab = document.getElementById("fileUploadTab");
     const trackUrlInput = document.getElementById("trackUrlInput");
     const trackFileInput = document.getElementById("trackFileInput");
+    const fileSelectButton = document.getElementById("fileSelectButton");
     const pasteUrlButton = document.getElementById("pasteUrlButton");
     const setTrackButton = document.getElementById("setTrackButton");
     const trackTitle = document.getElementById("trackTitle");
@@ -1616,6 +1647,13 @@
     trackFileInput.addEventListener("change", () => {
       clearCurrentLibraryTrack();
       updateSetTrackButton();
+      const file = trackFileInput.files?.[0];
+      fileSelectButton.querySelector("span").textContent = file ? file.name : "Выберите файл";
+      fileSelectButton.classList.toggle("selected", Boolean(file));
+    });
+
+    fileSelectButton.addEventListener("click", () => {
+      trackFileInput.click();
     });
 
     pasteUrlButton.addEventListener("click", async () => {
@@ -2501,7 +2539,12 @@
       fileUploadTab.classList.toggle("active", mode === "file");
       trackUrlInput.classList.toggle("active", mode === "url");
       trackFileInput.classList.toggle("active", mode === "file");
+      fileSelectButton.classList.toggle("active", mode === "file");
       pasteUrlButton.classList.toggle("hidden", mode !== "url");
+      if (mode === "url") {
+        fileSelectButton.classList.remove("selected");
+        fileSelectButton.querySelector("span").textContent = "Выберите файл";
+      }
       updateSetTrackButton();
       setControlsEnabled(Boolean(currentRoom));
     }
