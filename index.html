@@ -732,7 +732,80 @@
       min-height: 30px;
       padding: 0 10px;
       font-size: 12px;
-      border-radius: 7px;
+    }
+
+    .track-menu-container {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .track-menu-trigger {
+      min-height: 30px;
+      width: 30px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      background: transparent !important;
+      border: none !important;
+      color: var(--muted) !important;
+      font-size: 20px;
+      letter-spacing: 0;
+      line-height: 1;
+      box-shadow: none !important;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 160ms ease, background 160ms ease;
+    }
+
+    .track-menu-trigger:hover {
+      color: var(--text) !important;
+      background: var(--surface-soft) !important;
+      transform: none !important;
+    }
+
+    .track-menu {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      z-index: 50;
+      min-width: 140px;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow-lg);
+      margin-top: 4px;
+    }
+
+    .track-menu-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 36px;
+      padding: 0 12px;
+      background: transparent !important;
+      border: none !important;
+      color: var(--text) !important;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: none !important;
+      text-align: left;
+      transition: background 160ms ease;
+    }
+
+    .track-menu-item:hover {
+      background: var(--surface-soft) !important;
+      transform: none !important;
+    }
+
+    .track-menu-item[data-action='delete'] {
+      color: var(--danger) !important;
+    }
+
+    .track-menu-item[data-action='delete']:hover {
+      background: color-mix(in srgb, var(--danger), transparent 90%) !important;
     }
 
     .empty-state {
@@ -1666,6 +1739,44 @@
       trackFileInput.click();
     });
 
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".track-menu:not([hidden])").forEach(m => m.hidden = true);
+    });
+
+    playlistTracks.addEventListener("click", async (event) => {
+      const trigger = event.target.closest(".track-menu-trigger");
+      if (trigger) {
+        event.stopPropagation();
+        const menu = trigger.nextElementSibling;
+        if (menu) {
+          menu.hidden = !menu.hidden;
+        }
+        return;
+      }
+
+      const deleteBtn = event.target.closest(".track-menu-item[data-action='delete']");
+      if (deleteBtn) {
+        event.stopPropagation();
+        const menu = deleteBtn.closest(".track-menu");
+        if (menu) menu.hidden = true;
+        const li = deleteBtn.closest(".track-item");
+        const trackId = li?.dataset.trackId;
+        if (trackId && selectedPlaylistId) {
+          try {
+            await apiFetch(`${playlistsEndpoint}/${selectedPlaylistId}/tracks/${trackId}`, {
+              method: "DELETE"
+            });
+            li.remove();
+            if (String(currentLibraryTrackId) === trackId) {
+              clearCurrentLibraryTrack();
+            }
+          } catch {
+          }
+        }
+        return;
+      }
+    });
+
     pasteUrlButton.addEventListener("click", async () => {
       try {
         const text = await navigator.clipboard.readText();
@@ -2439,10 +2550,19 @@
         li.innerHTML = `
           <div class="track-row">
             <span class="track-name">${escapeHtml(title)}</span>
+            <div class="track-menu-container">
+              <button class="track-menu-trigger" type="button" aria-label="Меню трека">⋮</button>
+              <div class="track-menu" hidden>
+                <button class="track-menu-item" data-action="delete" type="button">Удалить</button>
+              </div>
+            </div>
           </div>
         `;
 
-        li.addEventListener("click", async () => {
+        li.addEventListener("click", async (event) => {
+          if (event.target.closest(".track-menu-container")) {
+            return;
+          }
           if (!s3Url) {
             return;
           }
@@ -2549,6 +2669,7 @@
     function clearCurrentLibraryTrack() {
       currentLibraryTrackId = null;
       currentLibraryTrackTitle = "";
+      document.querySelectorAll(".track-item.is-active").forEach(el => el.classList.remove("is-active"));
       setControlsEnabled(Boolean(currentRoom));
     }
 
