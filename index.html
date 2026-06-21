@@ -986,22 +986,28 @@
       color: var(--accent);
     }
 
-    #mobileTabUpload {
-      grid-column: 1;
-      grid-row: 2;
-    }
+    @media (min-width: 721px) {
+      .room-shell {
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
 
-    #mobileTabMusic {
-      grid-column: 1;
-      grid-row: 3;
-      min-height: 0;
-      overflow: hidden;
-    }
+      #mobileTabUpload {
+        grid-column: 1;
+        grid-row: 2;
+      }
 
-    #mobileTabParticipants {
-      grid-column: 2;
-      grid-row: 2 / 4;
-      min-height: 0;
+      #mobileTabMusic {
+        grid-column: 1;
+        grid-row: 3;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #mobileTabParticipants {
+        grid-column: 2;
+        grid-row: 2 / 4;
+        min-height: 0;
+      }
     }
 
     @media (max-width: 980px) {
