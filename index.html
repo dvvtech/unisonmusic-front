@@ -669,6 +669,16 @@
 
     .track-item {
       align-items: center;
+      cursor: pointer;
+    }
+
+    .track-item:hover {
+      background: var(--surface-soft);
+    }
+
+    .track-item.is-active {
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent), transparent 84%) 0%, transparent 100%);
+      box-shadow: inset 3px 0 0 var(--accent);
     }
 
     .playlist:last-child,
@@ -2424,14 +2434,15 @@
         const sourceUrl = track.url || track.Url || title;
         const li = document.createElement("li");
         li.className = "track-item";
+        li.dataset.trackId = String(trackId);
+        li.classList.toggle("is-active", currentLibraryTrackId === trackId);
         li.innerHTML = `
           <div class="track-row">
             <span class="track-name">${escapeHtml(title)}</span>
-            <button class="secondary tiny-button" data-track-id="${trackId}" type="button">Выбрать</button>
           </div>
         `;
 
-        li.querySelector("[data-track-id]").addEventListener("click", async () => {
+        li.addEventListener("click", async () => {
           if (!s3Url) {
             return;
           }
@@ -2523,6 +2534,14 @@
     function setCurrentLibraryTrack(trackId, title) {
       currentLibraryTrackId = trackId || null;
       currentLibraryTrackTitle = title || "";
+      document.querySelectorAll(".track-item.is-active").forEach(el => el.classList.remove("is-active"));
+      if (currentLibraryTrackId) {
+        document.querySelectorAll(".track-item").forEach(el => {
+          if (el.dataset.trackId === String(currentLibraryTrackId)) {
+            el.classList.add("is-active");
+          }
+        });
+      }
       renderTrackTitle(currentLibraryTrackTitle);
       setControlsEnabled(Boolean(currentRoom));
     }
